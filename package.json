@@ -1,0 +1,10 @@
+{
+  "name": "pryv-certificate-renewal",
+  "description": "Pryv.io package for renewing wildcard certificates",
+  "private": true,
+  "dependencies": {
+    "yamljs": "^0.3.0",
+    "superagent": "^6.1.0"
+  },
+  "license": "UNLICENSED"
+}
