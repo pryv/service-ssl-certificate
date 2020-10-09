@@ -1,11 +1,14 @@
+#!/usr/bin/node
 const fs = require('fs')
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
 const request = require('superagent');
+const { getLeaderAuth } = require('./retrieve-leader-auth');
 
 main();
 async function main () {
   try {
+    const onlyDebug = true;
     const platformPath = '/app/conf/platform.yml';
     const platformConfig = yaml.load(platformPath);
     const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value
@@ -23,9 +26,9 @@ async function main () {
       isTimeToRenewCertificate(certDir)
     ) {
       backupCurrentCertificate(certDir, certBackupDir);
-      requestNewCertificate(domain);
-      propagateCertificate(certDir);
-      await notifyAdmin(token, baseUrl);
+      requestNewCertificate(domain, onlyDebug);
+      propagateCertificate(certDir, onlyDebug);
+      await notifyAdmin(baseUrl);
 
       checkCertificateInFollowers(certMainDir, certDir);
       removeCertificateBackup(certBackupDir);
@@ -40,11 +43,13 @@ async function main () {
  * Check if certificate is still valid for at lease 30 days
  */
 function isTimeToRenewCertificate (certDir) {
-  const res = execSync(`"$((($(echo | openssl x509 -enddate -noout 
-    -in ${certDir}/fullchain.pem| sed 's/^.\{9\}//' | date  -f - '+%s') 
-    - $(date '+%s'))/43200))") -lt 30])`);
-  console.log('Response while checking certificate expiration date: ', res);
-  return false; //TODO
+  console.log('Checking if it is time to renew the certificates');
+  console.log(`openssl x509 -enddate -noout -in ${certDir}/fullchain.pem`);
+  const res = execSync(`openssl x509 -enddate -noout -in ${certDir}/fullchain.pem`).toString();
+  const renewalDate = Date.parse(res.split('=')[1]);
+  const validDaysUntilExpiration = (renewalDate - (new Date()).getTime()) / (1000 * 60 * 60 * 24.0)
+  console.log(`Certificate will expire after: ${validDaysUntilExpiration} days`);
+  return validDaysUntilExpiration < 30;
 }
 
 /**
@@ -82,22 +87,26 @@ function loadOldCertificateFromBackup (certDir, certBackupDir) {
  * --manual-auth-hook ${scriptsDir}/pre-renew-certificate.js \
  * --manual-cleanup-hook ${scriptsDir}/post-renew-certificate.sh \
  */
-function requestNewCertificate (domain) {
+function requestNewCertificate (domain, onlyDebug) {
+  let dryRunParameter = '';
+  if (onlyDebug) {
+    dryRunParameter = '--dry-run';
+  }
   console.log('Requesting for a new certificate');
   const res = execSync(`echo "Y" | certbot certonly --manual \
-    --manual-auth-hook /app/pre-renew-certificate.js \
-    -d *.${domain} --dry-run`);
-  console.log('Response while requesting for the certificate: ', res);
+    --manual-auth-hook /app/src/pre-renew-certificate.js \
+    -d *.${domain} ${dryRunParameter}`);
+  console.log('Response while requesting for the certificate: ', res.toString());
 }
 
 /**
  * Notify admin about new certificate to restart followers that uses the
  * certificates
- * @param {*} token 
  * @param {*} baseUrl
  */
-async function notifyAdmin (token,baseUrl) {
+async function notifyAdmin (baseUrl) {
   console.log('Notifying admin');
+  const token = await getLeaderAuth();
   const servicesToRestart = ['pryvio_config_follower', 'pryvio_dns'];
   const res = await request.post(baseUrl + '/admin/notify')
     .set('Authorization', token)
@@ -107,27 +116,40 @@ async function notifyAdmin (token,baseUrl) {
 
 function propagateCertificate (certDir) {
   console.log('Propagating certificate');
-  directories = execSync('find /app/data -name "secret" -type d');
-  // When acknowledged, put fullchain.pem > pryv.li - bundle.crt and 
-  // privkey.pem > pryv.li - key.pem
-  console.log(directories, 'directories delete this log TODO');
+  const directories = execSync(
+    'echo | find /app/data -name "secret" -type d',
+    { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 })
+    .split(/\r?\n/);
+
   directories.forEach(directory => {
-    console.log(`Coppying certificate from: ${certDir}/test_renew.crt to: ${directory}/test.crt`)
-    fs.copyFileSync(`${certDir}/test_renew.crt`, `${directory}/test.crt`);
+    if (directory.length !== 0) {
+      console.log(`Coppying certificate from: ${certDir}/fullchain.pem to: ${directory}/bundle.crt`)
+      if (fs.existsSync(`${certDir}/fullchain.pem`)) {
+        fs.copyFileSync(`${certDir}/fullchain.pem`, `${directory}/bundle.crt`);
+      }
+      if (fs.existsSync(`${certDir}/privkey.pem`)) {
+        fs.copyFileSync(`${certDir}/privkey.pem`, `${directory}/key.pem`);
+      }
+    }
   });
 }
 
+/**
+ * Check if the followers have the same certificates
+ * @param {*} certDir 
+ * @param {*} certDomainDir 
+ */
 function checkCertificateInFollowers (certDir, certDomainDir) {
   console.log('Checking certificates in the followers');
   const followersSettings = JSON.parse(fs.readFileSync('/app/conf/config-leader.json')).followers;
   Object.keys(followersSettings).forEach(followerkey => {
     let follower = followersSettings[followerkey].url;
-    console.log(follower, 'follower');
     if (follower.startsWith("https://")) {
-      execSync(`echo | openssl s_client -servername ${follower} -connect ${follower}:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > ${certDir}/tmp.crt`);
+      const domain = follower.split('//')[1];
+      // read certificate info and write content to `${certDir}/tmp.crt`
+      execSync(`echo | openssl s_client -servername ${domain} -connect ${domain}:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > ${certDir}/tmp.crt`);
       let tmpBuf1 = fs.readFileSync(`${certDir}/tmp.crt`);
       let tmpBuf2 = fs.readFileSync(`${certDomainDir}/cert.pem`);
-      // TODO
       if (tmpBuf1.equals(tmpBuf2)) {
         console.log(`Success: ${follower} did receive the certificate`);
       } else {

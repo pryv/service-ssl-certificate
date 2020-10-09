@@ -1,26 +1,26 @@
+#!/usr/bin/node
 const fs = require('fs')
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
 const request = require('superagent');
+const { getLeaderAuth } = require('./retrieve-leader-auth');
 
-main();
-async function main () {
+placeAcmeChallenge();
+async function placeAcmeChallenge () {
     try {
         const platformPath = '/app/conf/platform.yml';
         const platformConfig = yaml.load(platformPath);
         const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value
-        const baseUrl = `https://lead.${domain}`;//'http://0.0.0.0:7000';
-        const username = 'initial_user';
-        const password = process.env.LEADER_CREDENTIALS.trim();
-        const privateAddressDns = '172.19.0.1';
-
+        const baseUrl = `https://lead.${domain}`;
         console.log('Start letsencrypt');
-        const acme = 'abc';// TODO process.env.CERTBOT_VALIDATION.toString();
-        console.log('DELETE THIS LOOOOOOOOOG', acme);
+        const acme = process.env.CERTBOT_VALIDATION.toString();
         await writeAcmeChallengeToPlatformYaml(platformConfig, acme, platformPath);
-        const token = await requestToken(baseUrl, username, password);
-        await notifyAdmin(token, baseUrl);
-        await checkDNSAnswer(acme, domain, privateAddressDns);
+        await notifyAdmin(baseUrl);
+        const dnsAddressesToCheck = getDnsAddressesToCheck();
+        for (let i = 0; i < dnsAddressesToCheck.length; i++){
+            await checkDNSAnswer(acme, domain, dnsAddressesToCheck[i]);
+        }
+       
         console.log("End letsencrypt");
     } catch (err) {
         console.error(err);
@@ -35,20 +35,10 @@ async function main () {
  * @param {*} platformPath 
  */
 async function writeAcmeChallengeToPlatformYaml (platformConfig, acme, platformPath) {
-    console.log('Writting acme challenge to platform yaml');
+    console.log(`Writting acme challenge to ${platformPath}`);
     platformConfig.vars.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'].description = acme;
     console.log('Write the acme-challenge into the DNS');
     fs.writeFileSync(platformPath, yaml.stringify(platformConfig, 6, 3));
-}
-
-async function requestToken (baseUrl, username, password) {
-    console.log('Requesting the token');
-    const res = await request.post(baseUrl + '/auth/login')
-        .send({
-            username: username,
-            password: password
-        });
-    return res.body.token;
 }
 
 /**
@@ -57,7 +47,8 @@ async function requestToken (baseUrl, username, password) {
  * @param {*} token 
  * @param {*} baseUrl
  */
-async function notifyAdmin (token, baseUrl) {
+async function notifyAdmin (baseUrl) {
+    const token = await getLeaderAuth();
     console.log('Notifying admin');
     const servicesToRestart = ['pryvio_config_follower', 'pryvio_dns'];
     const res = await request.post(baseUrl + '/admin/notify')
@@ -67,30 +58,34 @@ async function notifyAdmin (token, baseUrl) {
 }
 
 /**
+ * Return dns1 and dns2 parameters from dns.json config
+ */
+function getDnsAddressesToCheck () {
+    const distinct = (value, index, self) => {
+        return self.indexOf(value) === index;
+    }
+    const dnsSettings = JSON.parse(fs.readFileSync('/app/dns.json')).dns.staticDataInDomain;
+    return [dnsSettings.dns1.ip, dnsSettings.dns2.ip].filter(distinct);
+}
+/**
  * Verify that acme_challenge succeeded
+ * 
  * @param {*} acme 
  * @param {*} domain 
  * @param {*} privateAddressDns 
  */
-async function checkDNSAnswer (acme, domain, privateAddressDns) {
-    console.log('Checking if the DNS answers with the acme-challenge');
+async function checkDNSAnswer (acme, domain, dnsAddress) {
+    console.log(`Checking if the DNS answers with the acme-challenge in ${dnsAddress}`);
     const timeout = 30000;
     let dig_txt = '';
     const startTime = new Date();
-
-    let counter = 0;
-    while (dig_txt !== acme && counter < 3) {
+    while (dig_txt !== acme) {
         dig_txt = execSync(
-            'dig @' + privateAddressDns +
-            ' TXT +noall +answer +short _acme-challenge.' + domain)
+            `dig @${dnsAddress} TXT +noall +answer +short _acme-challenge.${domain}`)
             .toString()
             .replace(/"/g, '')
             .trim();
-        if (dig_txt == acme) {
-            counter += 1;
-        } else {
-            counter = 0;
-        }
+
         let endTime = new Date();
         if (endTime - startTime > timeout) {
             throw new Error('Timeout');
