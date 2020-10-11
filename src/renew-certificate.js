@@ -27,11 +27,10 @@ async function main () {
     ) {
       backupCurrentCertificate(certDir, certBackupDir);
       requestNewCertificate(domain, onlyDebug);
-      propagateCertificate(certDir, onlyDebug);
+      propagateCertificate(certDir, domain);
       await notifyAdmin(baseUrl);
 
       checkCertificateInFollowers(certMainDir, certDir);
-      removeCertificateBackup(certBackupDir);
       console.log("End letsencrypt");
     }
   } catch (err) {
@@ -57,10 +56,10 @@ function isTimeToRenewCertificate (certDir) {
  */
 function backupCurrentCertificate (certDir, certBackupDir) {
   console.log(`Backing up current certificates from: ${certDir} to ${certBackupDir}`);
-  if (fs.existsSync(`${certBackupDir}/fullchain.pem`)) {
+  if (fs.existsSync(`${certDir}/fullchain.pem`)) {
     fs.copyFileSync(`${certDir}/fullchain.pem`, `${certBackupDir}/fullchain.pem`);
   }
-  if (fs.existsSync(`${certBackupDir}/privkey.pem`)) {
+  if (fs.existsSync(`${certDir}/privkey.pem`)) {
     fs.copyFileSync(`${certDir}/privkey.pem`, `${certBackupDir}/privkey.pem`);
   }
 }
@@ -82,7 +81,6 @@ function loadOldCertificateFromBackup (certDir, certBackupDir) {
 
 /**
  * Request letsencrypt certificate
- * TODO Maybe scripts could be part of this file
  * const scriptsDir = "/app/scripts"
  * --manual-auth-hook ${scriptsDir}/pre-renew-certificate.js \
  * --manual-cleanup-hook ${scriptsDir}/post-renew-certificate.sh \
@@ -114,7 +112,7 @@ async function notifyAdmin (baseUrl) {
   return res.body;
 }
 
-function propagateCertificate (certDir) {
+function propagateCertificate (certDir, domain) {
   console.log('Propagating certificate');
   const directories = execSync(
     'echo | find /app/data -name "secret" -type d',
@@ -125,10 +123,10 @@ function propagateCertificate (certDir) {
     if (directory.length !== 0) {
       console.log(`Coppying certificate from: ${certDir}/fullchain.pem to: ${directory}/bundle.crt`)
       if (fs.existsSync(`${certDir}/fullchain.pem`)) {
-        fs.copyFileSync(`${certDir}/fullchain.pem`, `${directory}/bundle.crt`);
+        fs.copyFileSync(`${certDir}/fullchain.pem`, `${directory}/${domain}-bundle.crt`);
       }
       if (fs.existsSync(`${certDir}/privkey.pem`)) {
-        fs.copyFileSync(`${certDir}/privkey.pem`, `${directory}/key.pem`);
+        fs.copyFileSync(`${certDir}/privkey.pem`, `${directory}/${domain}-key.pem`);
       }
     }
   });
@@ -139,27 +137,27 @@ function propagateCertificate (certDir) {
  * @param {*} certDir 
  * @param {*} certDomainDir 
  */
-function checkCertificateInFollowers (certDir, certDomainDir) {
+function checkCertificateInFollowers (certDir) {
   console.log('Checking certificates in the followers');
   const followersSettings = JSON.parse(fs.readFileSync('/app/conf/config-leader.json')).followers;
   Object.keys(followersSettings).forEach(followerkey => {
     let follower = followersSettings[followerkey].url;
     if (follower.startsWith("https://")) {
       const domain = follower.split('//')[1];
-      // read certificate info and write content to `${certDir}/tmp.crt`
-      execSync(`echo | openssl s_client -servername ${domain} -connect ${domain}:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > ${certDir}/tmp.crt`);
-      let tmpBuf1 = fs.readFileSync(`${certDir}/tmp.crt`);
-      let tmpBuf2 = fs.readFileSync(`${certDomainDir}/cert.pem`);
-      if (tmpBuf1.equals(tmpBuf2)) {
+      let certInFollower = execSync(`echo | openssl s_client -servername ${domain} -connect ${domain}:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p'`)
+        .toString()
+        .trim();
+
+      const certificateSeparator = 'END CERTIFICATE-----';
+      let mainCert = fs.readFileSync(`${certDir}/fullchain.pem`).toString()
+        .split(certificateSeparator)[0]
+        .trim() + certificateSeparator;
+
+      if (certInFollower === mainCert) {
         console.log(`Success: ${follower} did receive the certificate`);
       } else {
         console.log(`Error: ${follower} did not receive the certificate`);
       }
     }
   });
-}
-
-function removeCertificateBackup (certBackupDir) {
-  console.log('Removing certificate backup');
-  fs.rmdirSync(certBackupDir, { recursive: true });
 }

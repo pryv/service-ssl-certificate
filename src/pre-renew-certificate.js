@@ -16,11 +16,7 @@ async function placeAcmeChallenge () {
         const acme = process.env.CERTBOT_VALIDATION.toString();
         await writeAcmeChallengeToPlatformYaml(platformConfig, acme, platformPath);
         await notifyAdmin(baseUrl);
-        const dnsAddressesToCheck = getDnsAddressesToCheck();
-        for (let i = 0; i < dnsAddressesToCheck.length; i++){
-            await checkDNSAnswer(acme, domain, dnsAddressesToCheck[i]);
-        }
-       
+        await checkDNSAnswer(acme, domain);      
         console.log("End letsencrypt");
     } catch (err) {
         console.error(err);
@@ -58,30 +54,20 @@ async function notifyAdmin (baseUrl) {
 }
 
 /**
- * Return dns1 and dns2 parameters from dns.json config
- */
-function getDnsAddressesToCheck () {
-    const distinct = (value, index, self) => {
-        return self.indexOf(value) === index;
-    }
-    const dnsSettings = JSON.parse(fs.readFileSync('/app/dns.json')).dns.staticDataInDomain;
-    return [dnsSettings.dns1.ip, dnsSettings.dns2.ip].filter(distinct);
-}
-/**
  * Verify that acme_challenge succeeded
  * 
  * @param {*} acme 
  * @param {*} domain 
  * @param {*} privateAddressDns 
  */
-async function checkDNSAnswer (acme, domain, dnsAddress) {
-    console.log(`Checking if the DNS answers with the acme-challenge in ${dnsAddress}`);
+async function checkDNSAnswer (acme, domain) {
+    console.log(`Checking if the DNS answers with the acme-challenge`);
     const timeout = 30000;
     let dig_txt = '';
     const startTime = new Date();
     while (dig_txt !== acme) {
         dig_txt = execSync(
-            `dig @${dnsAddress} TXT +noall +answer +short _acme-challenge.${domain}`)
+            `dig TXT +noall +answer +short _acme-challenge.${domain}`)
             .toString()
             .replace(/"/g, '')
             .trim();
