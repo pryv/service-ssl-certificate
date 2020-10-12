@@ -3,38 +3,43 @@ const fs = require('fs')
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
 const request = require('superagent');
-const { getLeaderAuth } = require('./retrieve-leader-auth');
+const { getLeaderAuth } = require('/app/src/retrieve-leader-auth');
 
 main();
 async function main () {
-  try {
-    const onlyDebug = true;
-    const platformPath = '/app/conf/platform.yml';
-    const platformConfig = yaml.load(platformPath);
-    const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value
-    console.log(`Checking the certificates for ${domain} domain`);
-    
-    const certMainDir = `/etc/letsencrypt/archive`
-    const certDir = `${certMainDir}/${domain}`
-    const certBackupDir = `${certMainDir}/tmp/${domain}`
-    const baseUrl = `https://lead.${domain}`;
+  const debug = process.env.DEBUG.toString().toLowerCase() === 'true';
+  console.log('Debug mode', debug);
+  const platformConfig = yaml.load('/app/conf/platform.yml');
+  const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value
+  const certMainDir = `/etc/letsencrypt/archive`
+  const certDir = `${certMainDir}/${domain}`
+  const certBackupDir = `${certMainDir}/tmp/${domain}`
+  const baseUrl = `https://lead.${domain}`;
 
+  console.log(`Checking the certificates for ${domain} domain`);
+
+  try {
     // if certificate does not exist or will expire soon, request for the new certificates
     if (
       !fs.existsSync(`${certDir}/fullchain.pem`) ||
       !fs.existsSync(`${certDir}/privkey.pem`) ||
-      isTimeToRenewCertificate(certDir)
+      isTimeToRenewCertificate(certDir) ||
+      debug
     ) {
       backupCurrentCertificate(certDir, certBackupDir);
-      requestNewCertificate(domain, onlyDebug);
+      requestNewCertificate(domain, debug);
       propagateCertificate(certDir, domain);
       await notifyAdmin(baseUrl);
 
-      checkCertificateInFollowers(certMainDir, certDir);
+      checkCertificateInFollowers(certDir);
       console.log("End letsencrypt");
     }
   } catch (err) {
-    console.error(err);
+    if (err.error) {
+      console.error(err.error);
+    } else {
+      console.error(err);
+    }
     loadOldCertificateFromBackup(certDir, certBackupDir);
   }
 }
@@ -46,7 +51,7 @@ function isTimeToRenewCertificate (certDir) {
   console.log(`openssl x509 -enddate -noout -in ${certDir}/fullchain.pem`);
   const res = execSync(`openssl x509 -enddate -noout -in ${certDir}/fullchain.pem`).toString();
   const renewalDate = Date.parse(res.split('=')[1]);
-  const validDaysUntilExpiration = (renewalDate - (new Date()).getTime()) / (1000 * 60 * 60 * 24.0)
+  const validDaysUntilExpiration = ((renewalDate - (new Date()).getTime()) / (1000 * 60 * 60 * 24.0)).toFixed();
   console.log(`Certificate will expire after: ${validDaysUntilExpiration} days`);
   return validDaysUntilExpiration < 30;
 }
@@ -56,6 +61,9 @@ function isTimeToRenewCertificate (certDir) {
  */
 function backupCurrentCertificate (certDir, certBackupDir) {
   console.log(`Backing up current certificates from: ${certDir} to ${certBackupDir}`);
+  if (!fs.existsSync(certBackupDir)) {
+    fs.mkdirSync(certBackupDir);
+  }
   if (fs.existsSync(`${certDir}/fullchain.pem`)) {
     fs.copyFileSync(`${certDir}/fullchain.pem`, `${certBackupDir}/fullchain.pem`);
   }
@@ -68,22 +76,20 @@ function backupCurrentCertificate (certDir, certBackupDir) {
  * In case of the error - return old certificate and log error
  */
 function loadOldCertificateFromBackup (certDir, certBackupDir) {
-  console.log(`Loading old certificates from ${certBackupDir}`);
-  //fs.rmdirSync(certDir, { recursive: true });
+  console.log(`Error: Loading old certificates from ${certBackupDir} because of the errors mentioned above`);
+
   if (fs.existsSync(`${certBackupDir}/fullchain.pem`)) {
     fs.copyFileSync(`${certBackupDir}/fullchain.pem`, `${certDir}/fullchain.pem`);
   }
   if (fs.existsSync(`${certBackupDir}/privkey.pem`)) {
     fs.copyFileSync(`${certBackupDir}/privkey.pem`, `${certDir}/privkey.pem`);
   }
-  console.log('Error: Certificates are not new');//TODO log more details
 }
 
 /**
  * Request letsencrypt certificate
- * const scriptsDir = "/app/scripts"
- * --manual-auth-hook ${scriptsDir}/pre-renew-certificate.js \
- * --manual-cleanup-hook ${scriptsDir}/post-renew-certificate.sh \
+ * @param string domain 
+ * @param boolean onlyDebug 
  */
 function requestNewCertificate (domain, onlyDebug) {
   let dryRunParameter = '';
@@ -112,6 +118,12 @@ async function notifyAdmin (baseUrl) {
   return res.body;
 }
 
+/**
+ * Propagate certificates to all directories
+ * in the config with name 'secret'
+ * @param string certDir 
+ * @param string domain
+ */
 function propagateCertificate (certDir, domain) {
   console.log('Propagating certificate');
   const directories = execSync(
