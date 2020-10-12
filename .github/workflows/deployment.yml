@@ -25,7 +25,7 @@ jobs:
      - name: Set tag
        id: set_tag
        run: |
--          SOURCE_TAG=$(git describe --abbrev=0 --tags)
+           SOURCE_TAG=$(git describe --abbrev=0 --tags)
            echo $SOURCE_TAG
            echo ::set-output name=SOURCE_TAG::$SOURCE_TAG
 
