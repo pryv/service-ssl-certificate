@@ -5,8 +5,7 @@ const { execSync } = require('child_process');
 const request = require('superagent');
 const { getLeaderAuth } = require('/app/src/retrieve-leader-auth');
 
-main();
-async function main () {
+async function renewCertificate () {
   const debug = process.env.DEBUG.toString().toLowerCase() === 'true';
   console.log('Debug mode', debug);
   const platformConfig = yaml.load('/app/conf/platform.yml');
@@ -43,6 +42,7 @@ async function main () {
     loadOldCertificateFromBackup(certDir, certBackupDir);
   }
 }
+exports.renewCertificate = renewCertificate;
 /**
  * Check if certificate is still valid for at lease 30 days
  */

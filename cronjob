@@ -1,2 +1,0 @@
-0 1 * * * node /app/src/renew-certificate.js >> /app/log/cron.log 2>&1
-
