@@ -22,12 +22,12 @@ jobs:
         username: ${{ secrets.REGISTRY_PRYV_USERNAME }}
         password: ${{ secrets.REGISTRY_PRYV_PASSWORD }}
 
-     - name: Set tag
-       id: set_tag
-       run: |
-           SOURCE_TAG=$(git describe --abbrev=0 --tags)
-           echo $SOURCE_TAG
-           echo ::set-output name=SOURCE_TAG::$SOURCE_TAG
+    - name: Set tag
+      id: set_tag
+      run: |
+        SOURCE_TAG=$(git describe --abbrev=0 --tags)
+        echo $SOURCE_TAG
+        echo ::set-output name=SOURCE_TAG::$SOURCE_TAG
 
     - name: Build core image
       run: docker build -t ${{ secrets.REGISTRY_PRYV_SERVER }}/pryv/ssl-certificate:${{ steps.set_tag.outputs.SOURCE_TAG }} .
