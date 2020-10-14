@@ -3,10 +3,9 @@ const fs = require('fs');
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
 const request = require('superagent');
-const { getLeaderAuth } = require('/app/src/retrieve-leader-auth');
+const { notifyAdmin } = require('/app/src/communicate-with-leader');
 
-placeAcmeChallenge();
-async function placeAcmeChallenge () {
+(async () => {
   console.log('Start letsencrypt');
   try {
     const platformPath = '/app/conf/platform.yml';
@@ -21,7 +20,7 @@ async function placeAcmeChallenge () {
   } catch (err) {
     console.error(err);
   }
-}
+})();
 
 /**
  * Save acme challenge to platform yaml 
@@ -34,21 +33,6 @@ async function writeAcmeChallengeToPlatformYaml (platformConfig, acme, platformP
   console.log(`Writting acme challenge to ${platformPath}`);
   platformConfig.vars.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'].description = acme;
   fs.writeFileSync(platformPath, yaml.stringify(platformConfig, 6, 3));
-}
-
-/**
- * Notify admin about new certificate to restart followers that uses the
- * certificates
- * @param {*} baseUrl
- */
-async function notifyAdmin (baseUrl) {
-  const token = await getLeaderAuth();
-  console.log('Notifying admin');
-  const servicesToRestart = ['pryvio_config_follower', 'pryvio_dns'];
-  const res = await request.post(baseUrl + '/admin/notify')
-    .set('Authorization', token)
-    .send(servicesToRestart);
-  return res.body;
 }
 
 /**
