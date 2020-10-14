@@ -30,17 +30,11 @@ async function renewCertificate () {
     ) {
       backupCurrentCertificate(certDir, certBackupDir);
       requestNewCertificate(domain, debug);
-<<<<<<< HEAD
-      propagateCertificate(certDir, domain);
-      await notifyAdmin(baseUrl);
-
-=======
       copyCertificate(certDir, domain);
       await notifyAdmin(baseUrl);
 
       // wait for 30 seconds so that followers would have time to restart
       await sleep(30000);
->>>>>>> main
       checkCertificateInFollowers(certDir);
       console.log("End letsencrypt");
     }
@@ -54,14 +48,11 @@ async function renewCertificate () {
   }
 }
 exports.renewCertificate = renewCertificate;
-<<<<<<< HEAD
-=======
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
->>>>>>> main
 /**
  * Check if certificate is still valid for at lease 30 days
  */
@@ -123,36 +114,14 @@ function requestNewCertificate (domain, onlyDebug) {
 }
 
 /**
-<<<<<<< HEAD
- * Notify admin about new certificate to restart followers that uses the
- * certificates
- * @param {*} baseUrl
- */
-async function notifyAdmin (baseUrl) {
-  console.log('Notifying admin');
-  const token = await getLeaderAuth();
-  const servicesToRestart = ['pryvio_config_follower', 'pryvio_dns'];
-  const res = await request.post(baseUrl + '/admin/notify')
-    .set('Authorization', token)
-    .send(servicesToRestart);
-  return res.body;
-}
-
-/**
-=======
->>>>>>> main
  * Propagate certificates to all directories
  * in the config with name 'secret'
  * @param string certDir 
  * @param string domain
  */
-<<<<<<< HEAD
-function propagateCertificate (certDir, domain) {
-  console.log('Propagating certificate');
-=======
+
 function copyCertificate (certDir, domain) {
   console.log('Copying ssl certificate');
->>>>>>> main
   const directories = execSync(
     'echo | find /app/data -name "secret" -type d',
     { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 })
@@ -160,18 +129,9 @@ function copyCertificate (certDir, domain) {
 
   directories.forEach(directory => {
     if (directory.length !== 0) {
-      console.log(`Coppying certificate from: ${certDir}/fullchain.pem to: ${directory}/bundle.crt`)
-<<<<<<< HEAD
-      if (fs.existsSync(`${certDir}/fullchain.pem`)) {
-        fs.copyFileSync(`${certDir}/fullchain.pem`, `${directory}/${domain}-bundle.crt`);
-      }
-      if (fs.existsSync(`${certDir}/privkey.pem`)) {
-        fs.copyFileSync(`${certDir}/privkey.pem`, `${directory}/${domain}-key.pem`);
-      }
-=======
+      console.log(`Coppying certificate from: ${certDir}/fullchain.pem to: ${directory}/bundle.crt`);
       fs.copyFileSync(`${certDir}/fullchain.pem`, `${directory}/${domain}-bundle.crt`);
       fs.copyFileSync(`${certDir}/privkey.pem`, `${directory}/${domain}-key.pem`);
->>>>>>> main
     }
   });
 }
