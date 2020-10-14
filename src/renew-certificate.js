@@ -3,10 +3,13 @@ const fs = require('fs');
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
 const request = require('superagent');
-const { getLeaderAuth } = require('/app/src/retrieve-leader-auth');
+const { notifyAdmin } = require('/app/src/communicate-with-leader');
 
 async function renewCertificate () {
-  const debug = process.env.DEBUG.toString().toLowerCase() === 'true';
+  let debug = false;
+  if(process.env.DEBUG?.toString().toLowerCase() === 'true') {
+     debug = true;
+  }
   console.log('Debug mode', debug);
   const platformConfig = yaml.load('/app/conf/platform.yml');
   const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value
@@ -27,9 +30,17 @@ async function renewCertificate () {
     ) {
       backupCurrentCertificate(certDir, certBackupDir);
       requestNewCertificate(domain, debug);
+<<<<<<< HEAD
       propagateCertificate(certDir, domain);
       await notifyAdmin(baseUrl);
 
+=======
+      copyCertificate(certDir, domain);
+      await notifyAdmin(baseUrl);
+
+      // wait for 30 seconds so that followers would have time to restart
+      await sleep(30000);
+>>>>>>> main
       checkCertificateInFollowers(certDir);
       console.log("End letsencrypt");
     }
@@ -43,6 +54,14 @@ async function renewCertificate () {
   }
 }
 exports.renewCertificate = renewCertificate;
+<<<<<<< HEAD
+=======
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+>>>>>>> main
 /**
  * Check if certificate is still valid for at lease 30 days
  */
@@ -104,6 +123,7 @@ function requestNewCertificate (domain, onlyDebug) {
 }
 
 /**
+<<<<<<< HEAD
  * Notify admin about new certificate to restart followers that uses the
  * certificates
  * @param {*} baseUrl
@@ -119,13 +139,20 @@ async function notifyAdmin (baseUrl) {
 }
 
 /**
+=======
+>>>>>>> main
  * Propagate certificates to all directories
  * in the config with name 'secret'
  * @param string certDir 
  * @param string domain
  */
+<<<<<<< HEAD
 function propagateCertificate (certDir, domain) {
   console.log('Propagating certificate');
+=======
+function copyCertificate (certDir, domain) {
+  console.log('Copying ssl certificate');
+>>>>>>> main
   const directories = execSync(
     'echo | find /app/data -name "secret" -type d',
     { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 })
@@ -134,12 +161,17 @@ function propagateCertificate (certDir, domain) {
   directories.forEach(directory => {
     if (directory.length !== 0) {
       console.log(`Coppying certificate from: ${certDir}/fullchain.pem to: ${directory}/bundle.crt`)
+<<<<<<< HEAD
       if (fs.existsSync(`${certDir}/fullchain.pem`)) {
         fs.copyFileSync(`${certDir}/fullchain.pem`, `${directory}/${domain}-bundle.crt`);
       }
       if (fs.existsSync(`${certDir}/privkey.pem`)) {
         fs.copyFileSync(`${certDir}/privkey.pem`, `${directory}/${domain}-key.pem`);
       }
+=======
+      fs.copyFileSync(`${certDir}/fullchain.pem`, `${directory}/${domain}-bundle.crt`);
+      fs.copyFileSync(`${certDir}/privkey.pem`, `${directory}/${domain}-key.pem`);
+>>>>>>> main
     }
   });
 }
