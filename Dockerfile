@@ -12,4 +12,4 @@ RUN apt-get update -y \
 RUN chmod +x /app/src/pre-renew-certificate.js
 
 # Run the command on container startup
-CMD node /app/src/cronjob.js > /app/log/service-ssl-certificate.log &
+CMD node /app/src/cronjob.js

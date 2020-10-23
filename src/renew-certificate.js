@@ -73,7 +73,7 @@ function isTimeToRenewCertificate (certDir) {
 function backupCurrentCertificate (certDir, certBackupDir) {
   console.log(`Backing up current certificates from: ${certDir} to ${certBackupDir}`);
   if (!fs.existsSync(certBackupDir)) {
-    fs.mkdirSync(certBackupDir);
+    fs.mkdirSync(certBackupDir, { recursive: true });
   }
   if (fs.existsSync(`${certDir}/fullchain.pem`)) {
     fs.copyFileSync(`${certDir}/fullchain.pem`, `${certBackupDir}/fullchain.pem`);
