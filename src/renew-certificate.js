@@ -13,15 +13,18 @@ async function renewCertificate () {
 
   console.log('Debug mode', debug);
   const platformConfig = yaml.load('/app/conf/platform.yml');
-  const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value
-  const certMainDir = `/etc/letsencrypt/archive`
-  const certDir = `${certMainDir}/${domain}`
-  const certBackupDir = `${certMainDir}/tmp/${domain}`
+  const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
+  const email = platformConfig.vars.ADVANCED_API_SETTINGS.settings.LETSENCRYPT_EMAIL.value;
+  const certMainDir = `/etc/letsencrypt/archive`;
+  const certDir = `${certMainDir}/${domain}`;
+  const certBackupDir = `${certMainDir}/tmp/${domain}`;
   const baseUrl = `https://lead.${domain}`;
 
   console.log(`Checking the certificates for ${domain} domain`);
 
   try {
+    copyCertificatesFromNginxIfNeeded(certDir, domain);
+
     // if certificate does not exist or will expire soon, request for the new certificates
     if (
       !fs.existsSync(`${certDir}/fullchain.pem`) ||
@@ -30,7 +33,7 @@ async function renewCertificate () {
       debug
     ) {
       backupCurrentCertificate(certDir, certBackupDir);
-      requestNewCertificate(domain, debug);
+      requestNewCertificate(domain, debug, email);
       copyCertificate(certDir, domain);
       await notifyAdmin(baseUrl);
 
@@ -55,6 +58,28 @@ function sleep(ms) {
 }
 
 /**
+ * For the first time in systems that already have the certificate,
+ * they will exist only in the nginx config. Copy them to letsencrypt folder
+ */
+function copyCertificatesFromNginxIfNeeded (certDir, domain) {
+  if (fs.existsSync(`${certDir}/fullchain.pem`) &&
+      fs.existsSync(`${certDir}/privkey.pem`) ) {
+    return;
+  }
+  console.log('Copying ssl certificate to letsencrypt directory');
+  const directories = getDirectoriesWithSecrets();
+
+  if(directories.length > 0) {
+    if (!fs.existsSync(certDir)) {
+      fs.mkdirSync(certDir, { recursive: true });
+    }
+    console.log(`Coppying certificate from: ${certDir}/fullchain.pem to: ${directories[0]}/bundle.crt`)
+    fs.copyFileSync(`${directories[0]}/${domain}-bundle.crt`, `${certDir}/fullchain.pem`);
+    fs.copyFileSync(`${directories[0]}/${domain}-key.pem`, `${certDir}/privkey.pem`);
+  }
+}
+
+/**
  * Check if certificate is still valid for at lease 30 days
  */
 function isTimeToRenewCertificate (certDir) {
@@ -64,7 +89,7 @@ function isTimeToRenewCertificate (certDir) {
   const renewalDate = Date.parse(res.split('=')[1]);
   const validDaysUntilExpiration = ((renewalDate - (new Date()).getTime()) / (1000 * 60 * 60 * 24.0)).toFixed();
   console.log(`Certificate will expire after: ${validDaysUntilExpiration} days`);
-  return validDaysUntilExpiration < 30;
+  return validDaysUntilExpiration <= 30;
 }
 
 /**
@@ -102,16 +127,25 @@ function loadOldCertificateFromBackup (certDir, certBackupDir) {
  * @param string domain 
  * @param boolean onlyDebug 
  */
-function requestNewCertificate (domain, onlyDebug) {
+function requestNewCertificate (domain, onlyDebug, email) {
   let dryRunParameter = '';
   if (onlyDebug) {
     dryRunParameter = '--dry-run';
   }
   console.log('Requesting for a new certificate');
-  const res = execSync(`echo "Y" | certbot certonly --manual \
-    --manual-auth-hook /app/src/pre-renew-certificate.js \
-    -d *.${domain} ${dryRunParameter}`);
+  const certCommand = `echo "Y" | certbot certonly --manual \
+    --manual-auth-hook "node /app/src/pre-renew-certificate.js" \
+    -d *.${domain} -m ${email} ${dryRunParameter}`
+  console.log(certCommand);
+  const res = execSync(certCommand);
   console.log('Response while requesting for the certificate: ', res.toString());
+}
+
+function getDirectoriesWithSecrets () {
+  return execSync(
+    'echo | find /app/data -name "secret" -type d',
+    { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 })
+    .split(/\r?\n/);
 }
 
 /**
@@ -122,10 +156,7 @@ function requestNewCertificate (domain, onlyDebug) {
  */
 function copyCertificate (certDir, domain) {
   console.log('Copying ssl certificate');
-  const directories = execSync(
-    'echo | find /app/data -name "secret" -type d',
-    { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 })
-    .split(/\r?\n/);
+  const directories = getDirectoriesWithSecrets();
 
   directories.forEach(directory => {
     if (directory.length !== 0) {
