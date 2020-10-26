@@ -35,7 +35,7 @@ async function renewCertificate () {
       backupCurrentCertificate(certDir, certBackupDir);
       requestNewCertificate(domain, debug, email);
       copyCertificate(certDir, domain);
-      await notifyAdmin(baseUrl);
+      await notifyAdmin(baseUrl, ['pryvio_nginx']);
 
       // wait for 30 seconds so that followers would have time to restart
       await sleep(30000);

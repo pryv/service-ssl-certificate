@@ -6,11 +6,10 @@ const fs = require('fs');
  * certificates
  * @param {*} baseUrl
  */
-exports.notifyAdmin = async (baseUrl) => {
+exports.notifyAdmin = async (baseUrl, servicesToRestart) => {
   try {
     const token = await getLeaderAuth(baseUrl);
     console.log('Notifying admin');
-    const servicesToRestart = ['pryvio_dns'];
     const res = await request.post(baseUrl + '/admin/notify')
       .set('Authorization', token)
       .send(servicesToRestart);

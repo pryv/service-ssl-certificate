@@ -15,7 +15,7 @@ const { notifyAdmin } = require('/app/src/communicate-with-leader');
     const baseUrl = `https://lead.${domain}`;
     const acme = process.env.CERTBOT_VALIDATION.toString();
     await writeAcmeChallengeToPlatformYaml(platformConfig, acme, platformPath);
-    await notifyAdmin(baseUrl);
+    await notifyAdmin(baseUrl, ['pryvio_dns']);
     await checkDNSAnswer(acme, domain, gatewayIp);
     console.log("End letsencrypt");
   } catch (err) {
