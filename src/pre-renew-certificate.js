@@ -8,7 +8,6 @@ const { notifyAdmin } = require('/app/src/communicate-with-leader');
 (async () => {
   console.log('Start letsencrypt');
   try {
-    const gatewayIp = process.env.GATEWAY_IP?.toString();
     const platformPath = '/app/conf/platform.yml';
     const platformConfig = yaml.load(platformPath);
     const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value
@@ -16,7 +15,10 @@ const { notifyAdmin } = require('/app/src/communicate-with-leader');
     const acme = process.env.CERTBOT_VALIDATION.toString();
     await writeAcmeChallengeToPlatformYaml(platformConfig, acme, platformPath);
     await notifyAdmin(baseUrl, ['pryvio_dns']);
-    await checkDNSAnswer(acme, domain, gatewayIp);
+    const dnsAddressesToCheck = getDnsAddressesToCheck();
+    for (let i = 0; i < dnsAddressesToCheck.length; i++){
+      await checkDNSAnswer(acme, domain, dnsAddressesToCheck[i]);
+    }
     console.log("End letsencrypt");
   } catch (err) {
     console.error(err);
@@ -37,18 +39,28 @@ async function writeAcmeChallengeToPlatformYaml (platformConfig, acme, platformP
 }
 
 /**
+ * Return dns1 and dns2 parameters from dns.json config
+ */
+function getDnsAddressesToCheck () {
+  const distinct = (value, index, self) => {
+    return self.indexOf(value) === index;
+  }
+  const dnsSettings = JSON.parse(fs.readFileSync('/app/dns.json')).dns.staticDataInDomain;
+  return [dnsSettings.dns1.ip, dnsSettings.dns2.ip].filter(distinct);
+}
+/**
  * Verify that acme_challenge success
  * 
  * @param {*} acme 
  * @param {*} domain
  */
-async function checkDNSAnswer (acme, domain, gatewayIp) {
+async function checkDNSAnswer (acme, domain, ipToCheck) {
   console.log(`Checking if the DNS answers with the acme-challenge`);
   const timeout = 30000;
   let dig_txt = '';
   const startTime = new Date();
   while (dig_txt !== acme) {
-    dig_txt = execSync(`dig @${gatewayIp} TXT +noall +answer +short _acme-challenge.${domain}`)
+    dig_txt = execSync(`dig @${ipToCheck} TXT +noall +answer +short _acme-challenge.${domain}`)
       .toString()
       .replace(/"/g, '')
       .trim();
