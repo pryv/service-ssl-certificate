@@ -15,7 +15,7 @@ async function renewCertificate () {
   const platformConfig = yaml.load('/app/conf/platform.yml');
   const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
   const email = platformConfig.vars.ADVANCED_API_SETTINGS.settings.LETSENCRYPT_EMAIL.value;
-  const certMainDir = `/etc/letsencrypt/archive`;
+  const certMainDir = '/etc/letsencrypt/live';
   const certDir = `${certMainDir}/${domain}`;
   const certBackupDir = `${certMainDir}/tmp/${domain}`;
   const baseUrl = `https://lead.${domain}`;
@@ -135,6 +135,7 @@ function requestNewCertificate (domain, onlyDebug, email) {
   console.log('Requesting for a new certificate');
   const certCommand = `echo "Y" | certbot certonly --manual \
     --manual-auth-hook "node /app/src/pre-renew-certificate.js" \
+    --cert-name ${domain} \
     -d *.${domain} -m ${email} ${dryRunParameter}`
   console.log(certCommand);
   const res = execSync(certCommand);
