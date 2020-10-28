@@ -60,11 +60,14 @@ async function checkDNSAnswer (acme, domain, ipToCheck) {
   let dig_txt = '';
   const startTime = new Date();
   while (dig_txt !== acme) {
-    dig_txt = execSync(`dig @${ipToCheck} TXT +noall +answer +short _acme-challenge.${domain}`)
-      .toString()
-      .replace(/"/g, '')
-      .trim();
-
+    try {
+      dig_txt = execSync(`dig @${ipToCheck} TXT +noall +answer +short _acme-challenge.${domain}`)
+        .toString()
+        .replace(/"/g, '')
+        .trim();
+    } catch (e) {
+      // don't throw an error, if the acme challenge will fail, it should fail with a timeout
+    }
     let endTime = new Date();
     if (endTime - startTime > timeout) {
       throw new Error('Timeout');

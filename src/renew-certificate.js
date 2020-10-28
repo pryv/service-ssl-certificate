@@ -150,6 +150,14 @@ function getDirectoriesWithSecrets () {
 }
 
 /**
+ * certificate may be saved in /etc/letsencrypt/live/pryv-li or /etc/letsencrypt/live/pryv-li-0001 or
+ * similar directory so we will find the directory that is the last edited
+ */
+function getNewCertDir (certDir) {
+  return execSync(`ls -td ${certDir}*/ | head -1`).toString().trim();
+}
+
+/**
  * Propagate certificates to all directories
  * in the config with name 'secret'
  * @param string certDir 
@@ -157,13 +165,14 @@ function getDirectoriesWithSecrets () {
  */
 function copyCertificate (certDir, domain) {
   console.log('Copying ssl certificate');
+  const newCertDir = getNewCertDir(certDir);
   const directories = getDirectoriesWithSecrets();
 
   directories.forEach(directory => {
     if (directory.length !== 0) {
-      console.log(`Coppying certificate from: ${certDir}/fullchain.pem to: ${directory}/bundle.crt`)
-      fs.copyFileSync(`${certDir}/fullchain.pem`, `${directory}/${domain}-bundle.crt`);
-      fs.copyFileSync(`${certDir}/privkey.pem`, `${directory}/${domain}-key.pem`);
+      console.log(`Coppying certificate from: ${newCertDir}fullchain.pem to: ${directory}/bundle.crt`)
+      fs.copyFileSync(`${newCertDir}fullchain.pem`, `${directory}/${domain}-bundle.crt`);
+      fs.copyFileSync(`${newCertDir}privkey.pem`, `${directory}/${domain}-key.pem`);
     }
   });
 }
@@ -176,6 +185,7 @@ function copyCertificate (certDir, domain) {
 function checkCertificateInFollowers (certDir) {
   console.log('Checking certificates in the followers');
   const followersSettings = JSON.parse(fs.readFileSync('/app/conf/config-leader.json')).followers;
+  const newCertDir = getNewCertDir(certDir);
   Object.keys(followersSettings).forEach(followerkey => {
     let follower = followersSettings[followerkey].url;
     if (follower.startsWith("https://")) {
@@ -185,7 +195,7 @@ function checkCertificateInFollowers (certDir) {
         .trim();
 
       const certificateSeparator = 'END CERTIFICATE-----';
-      let mainCert = fs.readFileSync(`${certDir}/fullchain.pem`).toString()
+      let mainCert = fs.readFileSync(`${newCertDir}fullchain.pem`).toString()
         .split(certificateSeparator)[0]
         .trim() + certificateSeparator;
 
