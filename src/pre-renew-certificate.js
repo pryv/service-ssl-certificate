@@ -10,7 +10,7 @@ const { notifyAdmin } = require('/app/src/communicate-with-leader');
   try {
     const platformPath = '/app/conf/platform.yml';
     const platformConfig = yaml.load(platformPath);
-    const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value
+    const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
     const baseUrl = `https://lead.${domain}`;
     const acme = process.env.CERTBOT_VALIDATION.toString();
     await writeAcmeChallengeToPlatformYaml(platformConfig, acme, platformPath);
@@ -42,11 +42,12 @@ async function writeAcmeChallengeToPlatformYaml (platformConfig, acme, platformP
  * Return dns1 and dns2 parameters from dns.json config
  */
 function getDnsAddressesToCheck () {
+  const dnsSettings = JSON.parse(fs.readFileSync('/app/dns.json')).dns.staticDataInDomain;
+  return [dnsSettings.dns1.ip, dnsSettings.dns2.ip].filter(distinct);
+
   const distinct = (value, index, self) => {
     return self.indexOf(value) === index;
   }
-  const dnsSettings = JSON.parse(fs.readFileSync('/app/dns.json')).dns.staticDataInDomain;
-  return [dnsSettings.dns1.ip, dnsSettings.dns2.ip].filter(distinct);
 }
 /**
  * Verify that acme_challenge success

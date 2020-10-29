@@ -7,8 +7,8 @@ const { notifyAdmin } = require('/app/src/communicate-with-leader');
 
 async function renewCertificate () {
   let debug = false;
-  if(process.env.DEBUG?.toString().toLowerCase() === 'true') {
-     debug = true;
+  if (process.env.DEBUG?.toString().toLowerCase() === 'true') {
+    debug = true;
   }
 
   console.log('Debug mode', debug);
@@ -63,13 +63,13 @@ function sleep(ms) {
  */
 function copyCertificatesFromNginxIfNeeded (certDir, domain) {
   if (fs.existsSync(`${certDir}/fullchain.pem`) &&
-      fs.existsSync(`${certDir}/privkey.pem`) ) {
+      fs.existsSync(`${certDir}/privkey.pem`)) {
     return;
   }
   console.log('Copying ssl certificate to letsencrypt directory');
   const directories = getDirectoriesWithSecrets();
 
-  if(directories.length > 0) {
+  if (directories.length > 0) {
     if (!fs.existsSync(certDir)) {
       fs.mkdirSync(certDir, { recursive: true });
     }
@@ -109,7 +109,7 @@ function backupCurrentCertificate (certDir, certBackupDir) {
 }
 
 /**
- * In case of the error - return old certificate and log error
+ * In case of error - return old certificate and log error
  */
 function loadOldCertificateFromBackup (certDir, certBackupDir) {
   console.log(`Error: Loading old certificates from ${certBackupDir} because of the errors mentioned above`);
