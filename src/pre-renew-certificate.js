@@ -12,12 +12,12 @@ const { notifyAdmin } = require('/app/src/communicate-with-leader');
     const platformConfig = yaml.load(platformPath);
     const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
     const baseUrl = `https://lead.${domain}`;
-    const acme = process.env.CERTBOT_VALIDATION.toString();
-    await writeAcmeChallengeToPlatformYaml(platformConfig, acme, platformPath);
+    const dnsChallenge = process.env.CERTBOT_VALIDATION.toString();
+    await writeAcmeChallengeToPlatformYaml(platformConfig, dnsChallenge, platformPath);
     await notifyAdmin(baseUrl, ['pryvio_dns']);
     const dnsAddressesToCheck = getDnsAddressesToCheck();
     for (let i = 0; i < dnsAddressesToCheck.length; i++){
-      await checkDNSAnswer(acme, domain, dnsAddressesToCheck[i]);
+      await checkDNSAnswer(dnsChallenge, domain, dnsAddressesToCheck[i]);
     }
     console.log("End letsencrypt");
   } catch (err) {
@@ -29,12 +29,12 @@ const { notifyAdmin } = require('/app/src/communicate-with-leader');
  * Save acme challenge to platform yaml 
  * that could be distributed to all followers afterwards
  * @param {*} platformConfig 
- * @param {*} acme 
+ * @param {*} dnsChallenge 
  * @param {*} platformPath 
  */
-async function writeAcmeChallengeToPlatformYaml (platformConfig, acme, platformPath) {
+async function writeAcmeChallengeToPlatformYaml (platformConfig, dnsChallenge, platformPath) {
   console.log(`Writting acme challenge to ${platformPath}`);
-  platformConfig.vars.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'] = { description: acme };
+  platformConfig.vars.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'] = { description: dnsChallenge };
   fs.writeFileSync(platformPath, yaml.stringify(platformConfig, 6, 3));
 }
 
@@ -52,15 +52,15 @@ function getDnsAddressesToCheck () {
 /**
  * Verify that acme_challenge success
  * 
- * @param {*} acme 
+ * @param {*} dnsChallenge 
  * @param {*} domain
  */
-async function checkDNSAnswer (acme, domain, ipToCheck) {
+async function checkDNSAnswer (dnsChallenge, domain, ipToCheck) {
   console.log(`Checking if the DNS answers with the acme-challenge`);
   const timeout = 30000;
   let dig_txt = '';
   const startTime = new Date();
-  while (dig_txt !== acme) {
+  while (dig_txt !== dnsChallenge) {
     try {
       dig_txt = execSync(`dig @${ipToCheck} TXT +noall +answer +short _acme-challenge.${domain}`)
         .toString()
