@@ -3,7 +3,7 @@ const fs = require('fs');
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
 const request = require('superagent');
-const { notifyAdmin } = require('/app/src/communicate-with-leader');
+const { notifyAdmin } = require('/app/src/apiCalls');
 
 (async () => {
   console.log('Start letsencrypt');

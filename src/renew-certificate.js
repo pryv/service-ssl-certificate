@@ -3,7 +3,7 @@ const fs = require('fs');
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
 const request = require('superagent');
-const { notifyAdmin } = require('/app/src/communicate-with-leader');
+const { notifyAdmin } = require('/app/src/apiCalls');
 
 async function renewCertificate () {
   let debug = false;
@@ -134,7 +134,7 @@ function requestNewCertificate (domain, onlyDebug, email) {
   }
   console.log('Requesting for a new certificate');
   const certCommand = `echo "Y" | certbot certonly --manual \
-    --manual-auth-hook "node /app/src/pre-renew-certificate.js" \
+    --manual-auth-hook "node /app/src/setDnsChallenge.js" \
     --cert-name ${domain} \
     -d *.${domain} -m ${email} ${dryRunParameter}`
   console.log(certCommand);
