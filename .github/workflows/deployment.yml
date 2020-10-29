@@ -35,7 +35,7 @@ jobs:
         echo ::set-output name=SOURCE_TAG::$SOURCE_TAG
 
     - name: Build core image
-      run: docker build -t ${{ secrets.REGISTRY_PRYV_SERVER }}/pryv/ssl-certificate:${{ steps.set_tag.outputs.SOURCE_TAG }} .
+      run: docker build -t ${{ secrets.REGISTRY_PRYV_SERVER }}/pryvio/ssl-certificate:${{ steps.set_tag.outputs.SOURCE_TAG }} .
 
     - name: Upload new image to pryv registry
-      run: docker push ${{ secrets.REGISTRY_PRYV_SERVER }}/pryv/ssl-certificate:${{ steps.set_tag.outputs.SOURCE_TAG }}
+      run: docker push ${{ secrets.REGISTRY_PRYV_SERVER }}/pryvio/ssl-certificate:${{ steps.set_tag.outputs.SOURCE_TAG }}
