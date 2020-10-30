@@ -1,8 +1,9 @@
 var cron = require('node-cron');
 const { renewCertificate } = require('/app/src/renew-certificate');
+const { config } = require('/app/src/config');
 
 
-if(process.env.DEBUG?.toString().toLowerCase() === 'true') {
+if (config.debug) {
   cron.schedule('*/5 * * * *', () => {
     console.log('Checking certificates', new Date().toISOString());
     renewCertificate();

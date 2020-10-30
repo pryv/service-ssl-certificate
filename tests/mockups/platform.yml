@@ -1,0 +1,14 @@
+vars:
+  MACHINES_AND_PLATFORM_SETTINGS:
+    settings:
+      DOMAIN:
+        value: pryv.li
+  DNS_SETTINGS:
+    settings:
+      DNS_CUSTOM_ENTRIES:
+        value:
+          smth: abc
+  ADVANCED_API_SETTINGS:
+    settings:
+      LETSENCRYPT_EMAIL:
+        value: test@pryv.com

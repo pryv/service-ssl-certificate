@@ -1,0 +1,10 @@
+{
+  "followers": {
+    "key1": {
+      "url": "https://url1"
+    },
+    "key2": {
+      "url": "https://url2"
+    }
+  }
+}

@@ -2,7 +2,6 @@
 const fs = require('fs');
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
-const request = require('superagent');
 const { notifyAdmin } = require('/app/src/apiCalls');
 
 (async () => {
@@ -73,5 +72,10 @@ async function checkDNSAnswer (dnsChallenge, domain, ipToCheck) {
     if (endTime - startTime > timeout) {
       throw new Error('Timeout');
     }
+    await sleep(1000);
   }
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

@@ -1,5 +1,6 @@
 const request = require('superagent');
 const fs = require('fs');
+const { config } = require('./config');
 
 /**
  * Notify admin about new certificate to restart followers that uses the
@@ -22,18 +23,19 @@ exports.notifyAdmin = async (baseUrl, servicesToRestart) => {
 async function loginLeader (baseUrl) {
   const USERNAME = 'initial_user';
   let password;
-  if (fs.existsSync('/app/credentials/credentials.txt')) {
-    password = fs.readFileSync('/app/credentials/credentials.txt').toString().trim();
+  
+  if (fs.existsSync(config.credentialsPath)) {
+    password = fs.readFileSync(config.credentialsPath).toString().trim();
   } else {
     throw new Error('Initial user password was not found!');
   }
-  return await requestToken(baseUrl, username, password);
+  return await requestToken(baseUrl, USERNAME, password);
 
-  async function requestToken (baseUrl, username, password) {
+  async function requestToken (baseUrl, USERNAME, password) {
     console.log('Requesting the token');
     const res = await request.post(baseUrl + '/auth/login')
       .send({
-        username: username,
+        username: USERNAME,
         password: password
       });
     return res.body.token;

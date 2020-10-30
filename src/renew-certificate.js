@@ -2,26 +2,20 @@
 const fs = require('fs');
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
-const request = require('superagent');
-const { notifyAdmin } = require('/app/src/apiCalls');
+const { notifyAdmin } = require('./apiCalls');
+const { config } = require('./config');
+
 
 async function renewCertificate () {
-  let debug = false;
-  if (process.env.DEBUG?.toString().toLowerCase() === 'true') {
-    debug = true;
-  }
-
-  console.log('Debug mode', debug);
-  const platformConfig = yaml.load('/app/conf/platform.yml');
+  console.log('Debug mode', config.debug);
+  const platformConfig = yaml.load(config.platformYmlPath);
   const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
   const email = platformConfig.vars.ADVANCED_API_SETTINGS.settings.LETSENCRYPT_EMAIL.value;
-  const certMainDir = '/etc/letsencrypt/live';
-  const certDir = `${certMainDir}/${domain}`;
-  const certBackupDir = `${certMainDir}/tmp/${domain}`;
+  const certDir = `${config.certMainDir}/${domain}`;
+  const certBackupDir = `${config.certMainDir}/tmp/${domain}`;
   const baseUrl = `https://lead.${domain}`;
 
   console.log(`Checking the certificates for ${domain} domain`);
-
   try {
     copyCertificatesFromNginxIfNeeded(certDir, domain);
 
@@ -30,17 +24,18 @@ async function renewCertificate () {
       !fs.existsSync(`${certDir}/fullchain.pem`) ||
       !fs.existsSync(`${certDir}/privkey.pem`) ||
       isTimeToRenewCertificate(certDir) ||
-      debug
+      config.debug
     ) {
       backupCurrentCertificate(certDir, certBackupDir);
-      requestNewCertificate(domain, debug, email);
+      requestNewCertificate(domain, config.debug, email);
       copyCertificate(certDir, domain);
       await notifyAdmin(baseUrl, ['pryvio_nginx']);
 
       // wait for 30 seconds so that followers would have time to restart
-      await sleep(30000);
+      console.log('Waiting for half a minute until followers will reloaded');
+      await sleep(config.waitUntilFollowersReloadMs);
       checkCertificateInFollowers(certDir);
-      console.log("End letsencrypt");
+      console.log('End letsencrypt');
     }
   } catch (err) {
     if (err.error) {
@@ -66,14 +61,22 @@ function copyCertificatesFromNginxIfNeeded (certDir, domain) {
       fs.existsSync(`${certDir}/privkey.pem`)) {
     return;
   }
-  console.log('Copying ssl certificate to letsencrypt directory');
   const directories = getDirectoriesWithSecrets();
 
   if (directories.length > 0) {
+    console.log('Copying ssl certificate from nginx to letsencrypt directory');
     if (!fs.existsSync(certDir)) {
       fs.mkdirSync(certDir, { recursive: true });
     }
-    console.log(`Coppying certificate from: ${certDir}/fullchain.pem to: ${directories[0]}/bundle.crt`)
+    if (
+      !fs.existsSync(`${directories[0]}/${domain}-bundle.crt`) &&
+      !fs.existsSync(`${directories[0]}/${domain}-key.pem`)
+    ) {
+      throw new Error(`The certificates are not found neither in letsencrypt directory: 
+      ${certDir}/fullchain.pem and ${certDir}/privkey.pem, neither in nginx secrets folder
+      ${directories[0]}/${domain}-bundle.crt and ${directories[0]}/${domain}-key.pem`);
+    }
+    console.log(`${directories[0]}/${domain}-bundle.crt => ${certDir}/fullchain.pem`);
     fs.copyFileSync(`${directories[0]}/${domain}-bundle.crt`, `${certDir}/fullchain.pem`);
     fs.copyFileSync(`${directories[0]}/${domain}-key.pem`, `${certDir}/privkey.pem`);
   }
@@ -87,9 +90,14 @@ function isTimeToRenewCertificate (certDir) {
   console.log(`openssl x509 -enddate -noout -in ${certDir}/fullchain.pem`);
   const res = execSync(`openssl x509 -enddate -noout -in ${certDir}/fullchain.pem`).toString();
   const renewalDate = Date.parse(res.split('=')[1]);
+
+  if (isNaN(renewalDate)) {
+    throw new Error('Failed to parse the certificate validity date from the response.');
+  }
+  
   const validDaysUntilExpiration = ((renewalDate - (new Date()).getTime()) / (1000 * 60 * 60 * 24.0)).toFixed();
   console.log(`Certificate will expire after: ${validDaysUntilExpiration} days`);
-  return validDaysUntilExpiration <= 30;
+  return validDaysUntilExpiration < 30;
 }
 
 /**
@@ -112,7 +120,7 @@ function backupCurrentCertificate (certDir, certBackupDir) {
  * In case of error - return old certificate and log error
  */
 function loadOldCertificateFromBackup (certDir, certBackupDir) {
-  console.log(`Error: Loading old certificates from ${certBackupDir} because of the errors mentioned above`);
+  console.log(`Error: Loading old certificates if they exists from ${certBackupDir} because of the errors mentioned above`);
 
   if (fs.existsSync(`${certBackupDir}/fullchain.pem`)) {
     fs.copyFileSync(`${certBackupDir}/fullchain.pem`, `${certDir}/fullchain.pem`);
@@ -184,11 +192,11 @@ function copyCertificate (certDir, domain) {
  */
 function checkCertificateInFollowers (certDir) {
   console.log('Checking certificates in the followers');
-  const followersSettings = JSON.parse(fs.readFileSync('/app/conf/config-leader.json')).followers;
+  const followersSettings = JSON.parse(fs.readFileSync(config.followerSettingsFile)).followers;
   const newCertDir = getNewCertDir(certDir);
   Object.keys(followersSettings).forEach(followerkey => {
     let follower = followersSettings[followerkey].url;
-    if (follower.startsWith("https://")) {
+    if (follower.startsWith('https://')) {
       const domain = follower.split('//')[1];
       let certInFollower = execSync(`echo | openssl s_client -servername ${domain} -connect ${domain}:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p'`)
         .toString()
