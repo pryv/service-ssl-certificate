@@ -2,8 +2,6 @@ name: SSL renewal deployment
 
 on: 
   push:
-    tags:
-      - '*'
     branches:
       - main
 jobs:
