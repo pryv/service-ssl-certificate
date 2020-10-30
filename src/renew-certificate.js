@@ -75,13 +75,17 @@ function copyCertificatesFromNginxIfNeeded (certDir, domain) {
     if (!fs.existsSync(certDir)) {
       fs.mkdirSync(certDir, { recursive: true });
     }
-    if (fs.existsSync(`${directories[0]}/${domain}-bundle.crt`)) {
-      console.log(`${directories[0]}/${domain}-bundle.crt => ${certDir}/fullchain.pem`);
-      fs.copyFileSync(`${directories[0]}/${domain}-bundle.crt`, `${certDir}/fullchain.pem`);
+    if (
+      !fs.existsSync(`${directories[0]}/${domain}-bundle.crt`) &&
+      !fs.existsSync(`${directories[0]}/${domain}-key.pem`)
+    ) {
+      throw new Error(`The certificates are not found neither in letsencrypt directory: 
+      ${certDir}/fullchain.pem and ${certDir}/privkey.pem, neither in nginx secrets folder
+      ${directories[0]}/${domain}-bundle.crt and ${directories[0]}/${domain}-key.pem`);
     }
-    if (fs.existsSync(`${directories[0]}/${domain}-key.pem`)) {
-      fs.copyFileSync(`${directories[0]}/${domain}-key.pem`, `${certDir}/privkey.pem`);
-    }
+    console.log(`${directories[0]}/${domain}-bundle.crt => ${certDir}/fullchain.pem`);
+    fs.copyFileSync(`${directories[0]}/${domain}-bundle.crt`, `${certDir}/fullchain.pem`);
+    fs.copyFileSync(`${directories[0]}/${domain}-key.pem`, `${certDir}/privkey.pem`);
   }
 }
 

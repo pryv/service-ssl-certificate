@@ -9,14 +9,14 @@ const fs = require('fs');
 const nock = require('nock');
 const chai = require('chai');
 const assert = chai.assert;
-
+let childProcess = require('child_process');
 const mockupDir = './tests/mockups/';
 
 /**
  * Helper to form string date how long the certificate is valid
  * @param {*} days 
  */
-function addDaysToToday (days) {
+function generateFutureDate (days) {
   const dateAfterMonth = new Date();
   dateAfterMonth.setDate(new Date().getDate() + days);
   return dateAfterMonth.toISOString().split('T')[0];
@@ -37,6 +37,12 @@ function isCommandToGetLetsencryptDir (command) {
 function isCommandToGetPartOfCertificate (command) {
   return command.includes('echo | openssl s_client -servername');
 }
+
+var requireReload = function (modulePath) {
+  delete require.cache[require.resolve(modulePath)];
+  return require(modulePath);
+};
+
 /**
  * First parameter is command passed to execSync and the second parameter
  * is number of days how long certificate should be valid
@@ -47,7 +53,7 @@ function isCommandToGetPartOfCertificate (command) {
 function execSyncMock (command, days) {
   if (isCommandToGetCertificateExpirationDate(command)) {
 
-    return 'date=' + addDaysToToday(days) ; // how many days certificate is valid
+    return 'date=' + generateFutureDate(days) ; // how many days certificate is valid
   } else if (isCommandToGetNginxSecretsDir(command)) {
 
     // mockup dir where nginx certificates exists
@@ -66,23 +72,31 @@ function execSyncMock (command, days) {
   }
 }
 
+function getFullChainFilePath () {
+  return 'letsencrypt/pryv.li/fullchain.pem';
+}
+
+function getPrivKeyFilePath () {
+  return 'letsencrypt/pryv.li/privkey.pem';
+}
+
 function deleteBackup () {
   console.log('Cleaning after test', mockupDir + 'letsencrypt/');
-  fs.unlinkSync(mockupDir + 'letsencrypt/pryv.li/fullchain.pem');
-  fs.unlinkSync(mockupDir + 'letsencrypt/pryv.li/privkey.pem');
+  fs.unlinkSync(mockupDir + getFullChainFilePath());
+  fs.unlinkSync(mockupDir + getPrivKeyFilePath());
   fs.rmdirSync(mockupDir + 'letsencrypt/pryv.li/');
 }
 
 describe('SSL certificates renewal', () => {
   let adminLeaderLoginRequest;
   let adminLeaderNotifyRequest;
-  describe('When certificate is valid for the 30 days', async () => {
+  describe('When certificate is valid for the 30 days or less', async () => {
     before(async () => {
       // mock execSync
-      require('child_process').execSync = function (command) {
+      childProcess.execSync = function (command) {
         return execSyncMock(command, 30);
       };
-      const { renewCertificate } = require('../../src/renew-certificate');
+      const { renewCertificate } = requireReload('../../src/renew-certificate');
       nock('https://lead.pryv.li')
         .post('/auth/login',
           (body) => {
@@ -115,8 +129,8 @@ describe('SSL certificates renewal', () => {
     });
 
     it('Should copy certificate to letsencrypt dir from nginx dir', () => {
-      assert.isTrue(fs.existsSync(mockupDir + 'letsencrypt/pryv.li/fullchain.pem'));
-      assert.isTrue(fs.existsSync(mockupDir + 'letsencrypt/pryv.li/privkey.pem'));
+      assert.isTrue(fs.existsSync(mockupDir + getFullChainFilePath()));
+      assert.isTrue(fs.existsSync(mockupDir + getPrivKeyFilePath()));
     });
     it('Should backup certificate', () => {
       assert.isTrue(fs.existsSync(mockupDir + 'letsencrypt/tmp/pryv.li/fullchain.pem'));
@@ -130,7 +144,7 @@ describe('SSL certificates renewal', () => {
     });
   });
 
-  describe('When certificate is valid for the 31 days', () => {
+  describe('When the current certificate is valid for over 30 days', () => {
     after(() => {
       // delete newly created files
       deleteBackup();
@@ -140,9 +154,9 @@ describe('SSL certificates renewal', () => {
       process.env.DEBUG = false;
       let otherCommandWasCalled = false;
       // mock execSync
-      require('child_process').execSync = function (command) {
+      childProcess.execSync = function (command) {
         if (isCommandToGetCertificateExpirationDate(command)) {
-          return 'date=' + addDaysToToday(31); // how many days certificate is valid
+          return 'date=' + generateFutureDate(31); // how many days certificate is valid
         } else if (isCommandToGetNginxSecretsDir(command)) {
           // mockup dir where nginx certificates exists
           return mockupDir + 'nginx-directory-with-certs';
@@ -151,7 +165,7 @@ describe('SSL certificates renewal', () => {
           return '';
         }
       };
-      const { renewCertificate } = require('../../src/renew-certificate');
+      const { renewCertificate } = requireReload('../../src/renew-certificate');
       // start renewal
       renewCertificate();
       if (otherCommandWasCalled === true) {

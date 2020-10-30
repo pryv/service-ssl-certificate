@@ -1,0 +1,29 @@
+name: SSL renewal deployment
+
+on: 
+  push:
+    tags:
+      - '*'
+  push:
+    branches:
+      - main
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [12.13]
+
+    steps:
+    - name: Download master branch
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: yarn install
+      run: yarn install
+      
+    - name: yarn test
+      run: yarn test

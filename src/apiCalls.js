@@ -29,13 +29,13 @@ async function loginLeader (baseUrl) {
   } else {
     throw new Error('Initial user password was not found!');
   }
-  return await requestToken(baseUrl, username, password);
+  return await requestToken(baseUrl, USERNAME, password);
 
-  async function requestToken (baseUrl, username, password) {
+  async function requestToken (baseUrl, USERNAME, password) {
     console.log('Requesting the token');
     const res = await request.post(baseUrl + '/auth/login')
       .send({
-        username: username,
+        username: USERNAME,
         password: password
       });
     return res.body.token;
