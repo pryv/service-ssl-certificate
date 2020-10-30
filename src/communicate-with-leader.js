@@ -32,10 +32,12 @@ async function requestToken (baseUrl, username, password) {
 async function getLeaderAuth (baseUrl) {
   const username = 'initial_user';
   let password;
-  if (fs.existsSync('/app/credentials/credentials.txt')) {
-    password = fs.readFileSync('/app/credentials/credentials.txt').toString().trim();
+  
+  const credentialsPath = (process.env.INIT_USER_CREDENTIALS) ? process.env.INIT_USER_CREDENTIALS : '/app/credentials/credentials.txt';
+  if (fs.existsSync(credentialsPath)) {
+    password = fs.readFileSync(credentialsPath).toString().trim();
+    return await requestToken(baseUrl, username, password);
   } else {
     throw new Error('Initial user password was not found!');
   }
-  return await requestToken(baseUrl, username, password);
 }

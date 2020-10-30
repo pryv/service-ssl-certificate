@@ -33,7 +33,7 @@ const { notifyAdmin } = require('/app/src/communicate-with-leader');
  * @param {*} platformPath 
  */
 async function writeAcmeChallengeToPlatformYaml (platformConfig, acme, platformPath) {
-  console.log(`Writting acme challenge to ${platformPath}`);
+  console.log(`Writing acme challenge to ${platformPath}`);
   platformConfig.vars.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'] = { description: acme };
   fs.writeFileSync(platformPath, yaml.stringify(platformConfig, 6, 3));
 }
@@ -72,5 +72,10 @@ async function checkDNSAnswer (acme, domain, ipToCheck) {
     if (endTime - startTime > timeout) {
       throw new Error('Timeout');
     }
+    await sleep(1000);
   }
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
