@@ -90,9 +90,14 @@ function isTimeToRenewCertificate (certDir) {
   console.log(`openssl x509 -enddate -noout -in ${certDir}/fullchain.pem`);
   const res = execSync(`openssl x509 -enddate -noout -in ${certDir}/fullchain.pem`).toString();
   const renewalDate = Date.parse(res.split('=')[1]);
+
+  if (isNaN(renewalDate)) {
+    throw new Error('Failed to parse the certificate validity date from the response.');
+  }
+  
   const validDaysUntilExpiration = ((renewalDate - (new Date()).getTime()) / (1000 * 60 * 60 * 24.0)).toFixed();
   console.log(`Certificate will expire after: ${validDaysUntilExpiration} days`);
-  return validDaysUntilExpiration && validDaysUntilExpiration < 30;
+  return validDaysUntilExpiration < 30;
 }
 
 /**
