@@ -96,6 +96,7 @@ describe('SSL certificates renewal', () => {
       childProcess.execSync = function (command) {
         return execSyncMock(command, 30);
       };
+      requireReload('../../src/config');
       const { renewCertificate } = requireReload('../../src/renew-certificate');
       nock('https://lead.pryv.li')
         .post('/auth/login',
@@ -165,12 +166,11 @@ describe('SSL certificates renewal', () => {
           return '';
         }
       };
+      requireReload('../../src/config');
       const { renewCertificate } = requireReload('../../src/renew-certificate');
       // start renewal
       renewCertificate();
-      if (otherCommandWasCalled === true) {
-        assert.equal('Should not call any other execSync command', 'Called other execSync command');
-      }
+      assert.isFalse(otherCommandWasCalled, 'Should not call any other execSync command');
     });
   });
 });

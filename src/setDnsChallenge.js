@@ -2,7 +2,6 @@
 const fs = require('fs');
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
-const request = require('superagent');
 const { notifyAdmin } = require('/app/src/apiCalls');
 
 (async () => {

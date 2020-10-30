@@ -3,23 +3,16 @@ const fs = require('fs');
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
 const { notifyAdmin } = require('./apiCalls');
+const { config } = require('./config');
 
 
 async function renewCertificate () {
-  let debug = false;
-  if (process.env.DEBUG?.toString().toLowerCase() === 'true') {
-    debug = true;
-  }
-
-  console.log('Debug mode', debug);
-  const platformYmlPath = (process.env.PLATFORM_YML)? process.env.PLATFORM_YML : '/app/conf/platform.yml';
-  const certMainDir = (process.env.CERT_DIR)? process.env.CERT_DIR : '/etc/letsencrypt/live';
-
-  const platformConfig = yaml.load(platformYmlPath);
+  console.log('Debug mode', config.debug);
+  const platformConfig = yaml.load(config.platformYmlPath);
   const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
   const email = platformConfig.vars.ADVANCED_API_SETTINGS.settings.LETSENCRYPT_EMAIL.value;
-  const certDir = `${certMainDir}/${domain}`;
-  const certBackupDir = `${certMainDir}/tmp/${domain}`;
+  const certDir = `${config.certMainDir}/${domain}`;
+  const certBackupDir = `${config.certMainDir}/tmp/${domain}`;
   const baseUrl = `https://lead.${domain}`;
 
   console.log(`Checking the certificates for ${domain} domain`);
@@ -31,16 +24,16 @@ async function renewCertificate () {
       !fs.existsSync(`${certDir}/fullchain.pem`) ||
       !fs.existsSync(`${certDir}/privkey.pem`) ||
       isTimeToRenewCertificate(certDir) ||
-      debug
+      config.debug
     ) {
       backupCurrentCertificate(certDir, certBackupDir);
-      requestNewCertificate(domain, debug, email);
+      requestNewCertificate(domain, config.debug, email);
       copyCertificate(certDir, domain);
       await notifyAdmin(baseUrl, ['pryvio_nginx']);
 
       // wait for 30 seconds so that followers would have time to restart
       console.log('Waiting for half a minute until followers will reloaded');
-      await sleep((process.env.WAIT_UNTIL_FOLLOWERS_RELOAD_MS) ? process.env.WAIT_UNTIL_FOLLOWERS_RELOAD_MS : 30000);
+      await sleep(config.waitUntilFollowersReloadMs);
       checkCertificateInFollowers(certDir);
       console.log('End letsencrypt');
     }
@@ -194,8 +187,7 @@ function copyCertificate (certDir, domain) {
  */
 function checkCertificateInFollowers (certDir) {
   console.log('Checking certificates in the followers');
-  const followerSettingsFile = (process.env.CONFIG_LEADER_FILEPATH) ? process.env.CONFIG_LEADER_FILEPATH : '/app/conf/config-leader.json';
-  const followersSettings = JSON.parse(fs.readFileSync(followerSettingsFile)).followers;
+  const followersSettings = JSON.parse(fs.readFileSync(config.followerSettingsFile)).followers;
   const newCertDir = getNewCertDir(certDir);
   Object.keys(followersSettings).forEach(followerkey => {
     let follower = followersSettings[followerkey].url;

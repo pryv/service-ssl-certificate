@@ -1,5 +1,6 @@
 const request = require('superagent');
 const fs = require('fs');
+const { config } = require('./config');
 
 /**
  * Notify admin about new certificate to restart followers that uses the
@@ -23,9 +24,8 @@ async function loginLeader (baseUrl) {
   const USERNAME = 'initial_user';
   let password;
   
-  const credentialsPath = (process.env.INIT_USER_CREDENTIALS) ? process.env.INIT_USER_CREDENTIALS : '/app/credentials/credentials.txt';
-  if (fs.existsSync(credentialsPath)) {
-    password = fs.readFileSync(credentialsPath).toString().trim();
+  if (fs.existsSync(config.credentialsPath)) {
+    password = fs.readFileSync(config.credentialsPath).toString().trim();
   } else {
     throw new Error('Initial user password was not found!');
   }
