@@ -2,12 +2,13 @@
 const fs = require('fs');
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
-const { notifyAdmin } = require('./communicate-with-leader');
+const { notifyAdmin } = require('./apiCalls');
+
 
 async function renewCertificate () {
   let debug = false;
-  if(process.env.DEBUG?.toString().toLowerCase() === 'true') {
-     debug = true;
+  if (process.env.DEBUG?.toString().toLowerCase() === 'true') {
+    debug = true;
   }
 
   console.log('Debug mode', debug);
@@ -64,7 +65,7 @@ function sleep(ms) {
  */
 function copyCertificatesFromNginxIfNeeded (certDir, domain) {
   if (fs.existsSync(`${certDir}/fullchain.pem`) &&
-      fs.existsSync(`${certDir}/privkey.pem`) ) {
+      fs.existsSync(`${certDir}/privkey.pem`)) {
     return;
   }
   const directories = getDirectoriesWithSecrets();
@@ -114,7 +115,7 @@ function backupCurrentCertificate (certDir, certBackupDir) {
 }
 
 /**
- * In case of the error - return old certificate and log error
+ * In case of error - return old certificate and log error
  */
 function loadOldCertificateFromBackup (certDir, certBackupDir) {
   console.log(`Error: Loading old certificates if they exists from ${certBackupDir} because of the errors mentioned above`);
@@ -139,7 +140,7 @@ function requestNewCertificate (domain, onlyDebug, email) {
   }
   console.log('Requesting for a new certificate');
   const certCommand = `echo "Y" | certbot certonly --manual \
-    --manual-auth-hook "node /app/src/pre-renew-certificate.js" \
+    --manual-auth-hook "node /app/src/setDnsChallenge.js" \
     --cert-name ${domain} \
     -d *.${domain} -m ${email} ${dryRunParameter}`
   console.log(certCommand);
