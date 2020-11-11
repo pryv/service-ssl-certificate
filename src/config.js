@@ -1,6 +1,7 @@
 
 function isDebugMode () {
-  return process.env.DEBUG?.toString().toLowerCase() === 'true';
+  const debug = process.env.DEBUG;
+  return debug != null && debug.toString().toLowerCase() === 'true';
 }
 
 exports.config = {
