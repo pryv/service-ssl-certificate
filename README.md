@@ -1,6 +1,15 @@
 # service-ssl-certificate
 Pryv.io service for SSL certificate generation and renewal
 
+Prerequisites: Node v12+, Yarn v1+
+
+## How to?
+
+| Task                              | Command                        |
+| --------------------------------- | ------------------------------ |
+| Setup                             | `yarn`                         |
+| Run Tests                         | `yarn test`                    |
+
 ### Env variables
 
 1) DEBUG - if true - will run certificate check each 5 minutes with dry run option, default false
