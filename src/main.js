@@ -14,7 +14,7 @@ if (config.get('debug')) {
   });
 } else {
   logger.log('info', 'running every day at 01:00');
-  cron.schedule(config.get('letsencrypt:cron', () => {
+  cron.schedule(config.get('letsencrypt:cron'), () => {
     logger.log('info', 'Checking certificates', new Date().toISOString());
     renewCertificate();
   });
