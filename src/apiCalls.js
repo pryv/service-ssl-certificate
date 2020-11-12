@@ -2,6 +2,8 @@ const request = require('superagent');
 const fs = require('fs');
 const { config } = require('./config');
 
+const logger = require('./logger').getLogger('apiCalls');
+
 /**
  * Notify admin about new certificate to restart followers that uses the
  * certificates
@@ -10,13 +12,13 @@ const { config } = require('./config');
 exports.notifyAdmin = async (baseUrl, servicesToRestart) => {
   try {
     const token = await loginLeader(baseUrl);
-    console.log('Notifying admin');
+    logger.log('info', 'Notifying admin');
     const res = await request.post(baseUrl + '/admin/notify')
       .set('Authorization', token)
       .send(servicesToRestart);
     return res.body;
   } catch (err) {
-    console.error(err);
+    logger.log('error', err);
   }
 }
 
@@ -32,7 +34,7 @@ async function loginLeader (baseUrl) {
   return await requestToken(baseUrl, USERNAME, password);
 
   async function requestToken (baseUrl, USERNAME, password) {
-    console.log('Requesting the token');
+    logger.log('info', 'Requesting token from config-leader');
     const res = await request.post(baseUrl + '/auth/login')
       .send({
         username: USERNAME,

@@ -4,8 +4,10 @@ const yaml = require('yamljs');
 const { execSync } = require('child_process');
 const { notifyAdmin } = require('/app/src/apiCalls');
 
+const logger = require('./logger').getLogger('setDnsChallenge');
+
 (async () => {
-  console.log('Start letsencrypt');
+  logger.log('info', 'Start letsencrypt');
   try {
     const platformPath = '/app/conf/platform.yml';
     const platformConfig = yaml.load(platformPath);
@@ -18,9 +20,9 @@ const { notifyAdmin } = require('/app/src/apiCalls');
     for (let i = 0; i < dnsAddressesToCheck.length; i++){
       await checkDNSAnswer(dnsChallenge, domain, dnsAddressesToCheck[i]);
     }
-    console.log("End letsencrypt");
+    logger.log('info', 'End letsencrypt');
   } catch (err) {
-    console.error(err);
+    logger.log('error', err);
   }
 })();
 
@@ -32,7 +34,7 @@ const { notifyAdmin } = require('/app/src/apiCalls');
  * @param {*} platformPath 
  */
 async function writeAcmeChallengeToPlatformYaml (platformConfig, dnsChallenge, platformPath) {
-  console.log(`Writting acme challenge to ${platformPath}`);
+  logger.log('info', `Writting acme challenge to ${platformPath}`);
   platformConfig.vars.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'] = { description: dnsChallenge };
   fs.writeFileSync(platformPath, yaml.stringify(platformConfig, 6, 3));
 }
@@ -55,7 +57,7 @@ function getDnsAddressesToCheck () {
  * @param {*} domain
  */
 async function checkDNSAnswer (dnsChallenge, domain, ipToCheck) {
-  console.log(`Checking if the DNS answers with the acme-challenge`);
+  logger.log('info', `Checking if the DNS answers with the acme-challenge`);
   const timeout = 30000;
   let dig_txt = '';
   const startTime = new Date();
