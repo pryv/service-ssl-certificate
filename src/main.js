@@ -1,16 +1,20 @@
 var cron = require('node-cron');
 const { renewCertificate } = require('/app/src/renew-certificate');
-const { config } = require('/app/src/config');
+const config = require('/app/src/config');
 
 const logger = require('./logger').getLogger('main');
 
-if (config.debug) {
+logger.log('info', 'SSL certificate renewal service started');
+
+if (config.get('debug')) {
+  logger.log('info', 'debug mode is on, running every 5min with --dry-run');
   cron.schedule('*/5 * * * *', () => {
     logger.log('info', 'Checking certificates', new Date().toISOString());
     renewCertificate();
   });
 } else {
-  cron.schedule('0 1 * * *', () => {
+  logger.log('info', 'running every day at 01:00');
+  cron.schedule(config.get('letsencrypt:cron', () => {
     logger.log('info', 'Checking certificates', new Date().toISOString());
     renewCertificate();
   });

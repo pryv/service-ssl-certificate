@@ -3,17 +3,17 @@ const fs = require('fs');
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
 const { notifyAdmin } = require('./apiCalls');
-const { config } = require('./config');
+const config = require('./config');
 
 const logger = require('./logger').getLogger('renew-certificate');
 
 async function renewCertificate () {
-  logger.log('info', 'Debug mode', config.debug);
-  const platformConfig = yaml.load(config.platformYmlPath);
+  logger.log('info', 'Debug mode', config.get('debug'));
+  const platformConfig = yaml.load(config.get('platformYmlPath'));
   const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
   const email = platformConfig.vars.ADVANCED_API_SETTINGS.settings.LETSENCRYPT_EMAIL.value;
-  const certDir = `${config.certMainDir}/${domain}`;
-  const certBackupDir = `${config.certMainDir}/tmp/${domain}`;
+  const certDir = `${config.get('certMainDir')}/${domain}`;
+  const certBackupDir = `${config.get('certMainDir')}/tmp/${domain}`;
   const baseUrl = `https://lead.${domain}`;
 
   logger.log('info', `Checking the certificates for ${domain} domain`);
@@ -25,16 +25,16 @@ async function renewCertificate () {
       !fs.existsSync(`${certDir}/fullchain.pem`) ||
       !fs.existsSync(`${certDir}/privkey.pem`) ||
       isTimeToRenewCertificate(certDir) ||
-      config.debug
+      config.get('debug')
     ) {
       backupCurrentCertificate(certDir, certBackupDir);
-      requestNewCertificate(domain, config.debug, email);
+      requestNewCertificate(domain, config.get('debug'), email);
       copyCertificate(certDir, domain);
       await notifyAdmin(baseUrl, ['pryvio_nginx']);
 
       // wait for 30 seconds so that followers would have time to restart
       logger.log('info', 'Waiting for half a minute until followers will reloaded');
-      await sleep(config.waitUntilFollowersReloadMs);
+      await sleep(config.get('waitUntilFollowersReloadMs'));
       checkCertificateInFollowers(certDir);
       logger.log('info', 'End letsencrypt');
     }
@@ -179,7 +179,7 @@ function copyCertificate (certDir, domain) {
 
   directories.forEach(directory => {
     if (directory.length !== 0) {
-      logger.log('info', `Coppying certificate from: ${newCertDir}fullchain.pem to: ${directory}/bundle.crt`)
+      logger.log('info', `Copying certificate from: ${newCertDir}fullchain.pem to: ${directory}/bundle.crt`)
       fs.copyFileSync(`${newCertDir}fullchain.pem`, `${directory}/${domain}-bundle.crt`);
       fs.copyFileSync(`${newCertDir}privkey.pem`, `${directory}/${domain}-key.pem`);
     }
@@ -193,7 +193,7 @@ function copyCertificate (certDir, domain) {
  */
 function checkCertificateInFollowers (certDir) {
   logger.log('info', 'Checking certificates in the followers');
-  const followersSettings = JSON.parse(fs.readFileSync(config.followerSettingsFile)).followers;
+  const followersSettings = JSON.parse(fs.readFileSync(config.get('followerSettingsFile'))).followers;
   const newCertDir = getNewCertDir(certDir);
   Object.keys(followersSettings).forEach(followerkey => {
     let follower = followersSettings[followerkey].url;

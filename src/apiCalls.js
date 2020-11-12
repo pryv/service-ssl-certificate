@@ -1,6 +1,6 @@
 const request = require('superagent');
 const fs = require('fs');
-const { config } = require('./config');
+const config = require('./config');
 
 const logger = require('./logger').getLogger('apiCalls');
 
@@ -26,8 +26,8 @@ async function loginLeader (baseUrl) {
   const USERNAME = 'initial_user';
   let password;
   
-  if (fs.existsSync(config.credentialsPath)) {
-    password = fs.readFileSync(config.credentialsPath).toString().trim();
+  if (fs.existsSync(config.get('credentialsPath'))) {
+    password = fs.readFileSync(config.get('credentialsPath')).toString().trim();
   } else {
     throw new Error('Initial user password was not found!');
   }

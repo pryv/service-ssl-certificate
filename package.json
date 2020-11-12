@@ -6,6 +6,7 @@
     "test": "DEBUG=true PLATFORM_YML=./tests/mockups/platform.yml CERT_DIR=./tests/mockups/letsencrypt  INIT_USER_CREDENTIALS=./tests/mockups/credentials.txt CONFIG_LEADER_FILEPATH=./tests/mockups/config-leader.json WAIT_UNTIL_FOLLOWERS_RELOAD_MS=1 mocha 'tests/acceptance/' --timeout 50000"
   },
   "dependencies": {
+    "nconf": "^0.10.0",
     "node-cron": "^2.0.3",
     "superagent": "^6.1.0",
     "winston": "^3.3.3",
