@@ -8,7 +8,7 @@ const config = require('./config');
 const logger = require('./logger').getLogger('renew-certificate');
 
 async function renewCertificate () {
-  logger.log('info', 'Debug mode', config.get('debug'));
+  if (config.get('debug')) logger.log('info', 'Debug mode is ON');
   const platformConfig = yaml.load(config.get('platformYmlPath'));
   const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
   const email = platformConfig.vars.ADVANCED_API_SETTINGS.settings.LETSENCRYPT_EMAIL.value;
