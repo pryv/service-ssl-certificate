@@ -1,4 +1,4 @@
-var cron = require('node-cron');
+const cron = require('node-cron');
 const { renewCertificate } = require('/app/src/renew-certificate');
 const config = require('/app/src/config');
 
