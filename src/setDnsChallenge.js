@@ -48,7 +48,7 @@ function getDnsAddressesToCheck () {
   const dnsSettings = JSON.parse(fs.readFileSync('/app/dns.json')).dns.staticDataInDomain;
   return [dnsSettings.dns1.ip, dnsSettings.dns2.ip].filter(distinct);
 
-  const distinct = (value, index, self) => {
+  function distinct (value, index, self) {
     return self.indexOf(value) === index;
   }
 }
