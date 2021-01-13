@@ -14,9 +14,11 @@ const logger = require('./logger').getLogger('setDnsChallenge');
     const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
     const baseUrl = `https://lead.${domain}`;
     const dnsChallenge = process.env.CERTBOT_VALIDATION.toString();
+    logger.info('info', 'Setting DNS Challenge: ' + dnsChallenge);
     await writeAcmeChallengeToPlatformYaml(platformConfig, dnsChallenge, platformPath);
     await notifyAdmin(baseUrl, ['pryvio_dns']);
     const dnsAddressesToCheck = getDnsAddressesToCheck();
+    logger.log('info', 'verifying TXT entry in DNS servers at: ' + dnsAddressesToCheck);
     for (let i = 0; i < dnsAddressesToCheck.length; i++){
       await checkDNSAnswer(dnsChallenge, domain, dnsAddressesToCheck[i]);
     }
@@ -57,7 +59,7 @@ function getDnsAddressesToCheck () {
  * @param {*} domain
  */
 async function checkDNSAnswer (dnsChallenge, domain, ipToCheck) {
-  logger.log('info', `Checking if the DNS answers with the acme-challenge`);
+  logger.log('info', `Checking if the DNS answers with the acme-challenge for ` + ipToCheck);
   const timeout = 30000;
   let dig_txt = '';
   const startTime = new Date();
@@ -72,6 +74,7 @@ async function checkDNSAnswer (dnsChallenge, domain, ipToCheck) {
     }
     let endTime = new Date();
     if (endTime - startTime > timeout) {
+      logger.log('error', 'DNS check timed out');
       throw new Error('Timeout');
     }
     await sleep(1000);
