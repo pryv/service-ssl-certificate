@@ -1,4 +1,4 @@
-name: SSL renewal deployment
+name: SSL renewal tests
 
 on: 
   push:
@@ -22,8 +22,8 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
 
-    - name: yarn install
-      run: yarn install
+    - name: Download dependencies
+      run: yarn
       
-    - name: yarn test
+    - name: Run tests
       run: yarn test

@@ -1,4 +1,4 @@
-name: SSL renewal deployment
+name: SSL renewal release
 
 on: 
   push:
@@ -34,8 +34,8 @@ jobs:
         echo $SOURCE_TAG
         echo ::set-output name=SOURCE_TAG::$SOURCE_TAG
 
-    - name: Build core image
+    - name: Build docker image
       run: docker build -t ${{ secrets.REGISTRY_PRYV_SERVER }}/pryvio/ssl-certificate:${{ steps.set_tag.outputs.SOURCE_TAG }} .
 
-    - name: Upload new image to pryv registry
+    - name: Upload docker image to Pryv private registry
       run: docker push ${{ secrets.REGISTRY_PRYV_SERVER }}/pryvio/ssl-certificate:${{ steps.set_tag.outputs.SOURCE_TAG }}
