@@ -10,7 +10,7 @@ const nock = require('nock');
 const chai = require('chai');
 const assert = chai.assert;
 let childProcess = require('child_process');
-const mockupDir = './tests/mockups/';
+const mockupDir = './test/mockups/';
 
 /**
  * Helper to form string date how long the certificate is valid
