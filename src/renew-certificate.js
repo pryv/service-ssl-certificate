@@ -1,20 +1,21 @@
 #!/usr/bin/node
 const fs = require('fs');
 const yaml = require('yamljs');
+const path = require('path');
 const { execSync } = require('child_process');
-const { notifyAdmin } = require('./apiCalls');
+const { notifyLeader } = require('./apiCalls');
 const config = require('./config');
 
 const logger = require('./logger').getLogger('renew-certificate');
 
 async function renewCertificate () {
-  if (config.get('debug')) logger.log('info', 'Debug mode is ON');
+  logger.log('info', 'Debug mode=' + config.get('debug') + ', dry-run=' + config.get('isDryRun'));
   const platformConfig = yaml.load(config.get('platformYmlPath'));
   const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
   const email = platformConfig.vars.ADVANCED_API_SETTINGS.settings.LETSENCRYPT_EMAIL.value;
-  const certDir = `${config.get('certMainDir')}/${domain}`;
-  const certBackupDir = `${config.get('certMainDir')}/tmp/${domain}`;
-  const baseUrl = `https://lead.${domain}`;
+  const certDir = path.join(config.get('letsencrypt:certsDir'), domain);
+  const certBackupDir = path.join(config.get('letsencrypt:certsDir'), '/tmp', domain);
+  const leaderUrl = config.get('leader:url');
 
   logger.log('info', `Checking the certificates for ${domain} domain`);
   try {
@@ -28,9 +29,9 @@ async function renewCertificate () {
       config.get('debug')
     ) {
       backupCurrentCertificate(certDir, certBackupDir);
-      requestNewCertificate(domain, config.get('debug'), email);
+      requestNewCertificate(domain, email);
       copyCertificate(certDir, domain);
-      await notifyAdmin(baseUrl, ['pryvio_nginx']);
+      await notifyLeader(leaderUrl, ['pryvio_nginx']);
 
       // wait for 30 seconds so that followers would have time to restart
       logger.log('info', 'Waiting for half a minute until followers will reloaded');
@@ -88,8 +89,9 @@ function copyCertificatesFromNginxIfNeeded (certDir, domain) {
  */
 function isTimeToRenewCertificate (certDir) {
   logger.log('info', 'Checking if it is time to renew the certificates');
-  logger.log('info', `openssl x509 -enddate -noout -in ${certDir}/fullchain.pem`);
-  const res = execSync(`openssl x509 -enddate -noout -in ${certDir}/fullchain.pem`).toString();
+  const command = `openssl x509 -enddate -noout -in ${certDir}/fullchain.pem`;
+  logger.log('info', command);
+  const res = execSync(command).toString();
   const renewalDate = Date.parse(res.split('=')[1]);
 
   if (isNaN(renewalDate)) {
@@ -109,11 +111,17 @@ function backupCurrentCertificate (certDir, certBackupDir) {
   if (!fs.existsSync(certBackupDir)) {
     fs.mkdirSync(certBackupDir, { recursive: true });
   }
-  if (fs.existsSync(`${certDir}/fullchain.pem`)) {
-    fs.copyFileSync(`${certDir}/fullchain.pem`, `${certBackupDir}/fullchain.pem`);
+
+  const sourceCertPath = path.join(certDir, 'fullchain.pem');
+  const backupCertPath = path.join(certBackupDir, 'fullchain.pem');
+  const sourceKeyPath = path.join(certDir, 'privkey.pem');
+  const backupKeyPath = path.join(certBackupDir, 'privkey.pem');
+
+  if (fs.existsSync(sourceCertPath)) {
+    fs.copyFileSync(sourceCertPath, backupCertPath);
   }
-  if (fs.existsSync(`${certDir}/privkey.pem`)) {
-    fs.copyFileSync(`${certDir}/privkey.pem`, `${certBackupDir}/privkey.pem`);
+  if (fs.existsSync(sourceKeyPath)) {
+    fs.copyFileSync(sourceKeyPath, backupKeyPath);
   }
 }
 
@@ -123,11 +131,16 @@ function backupCurrentCertificate (certDir, certBackupDir) {
 function loadOldCertificateFromBackup (certDir, certBackupDir) {
   logger.log('error', `Error: Loading old certificates if they exists from ${certBackupDir} because of the errors mentioned above`);
 
-  if (fs.existsSync(`${certBackupDir}/fullchain.pem`)) {
-    fs.copyFileSync(`${certBackupDir}/fullchain.pem`, `${certDir}/fullchain.pem`);
+  const sourceCertPath = path.join(certDir, 'fullchain.pem');
+  const backupCertPath = path.join(certBackupDir, 'fullchain.pem');
+  const sourceKeyPath = path.join(certDir, 'privkey.pem');
+  const backupKeyPath = path.join(certBackupDir, 'privkey.pem');
+
+  if (fs.existsSync(backupCertPath)) {
+    fs.copyFileSync(backupCertPath, sourceCertPath);
   }
-  if (fs.existsSync(`${certBackupDir}/privkey.pem`)) {
-    fs.copyFileSync(`${certBackupDir}/privkey.pem`, `${certDir}/privkey.pem`);
+  if (fs.existsSync(backupKeyPath)) {
+    fs.copyFileSync(backupKeyPath, sourceKeyPath);
   }
 }
 
@@ -136,17 +149,17 @@ function loadOldCertificateFromBackup (certDir, certBackupDir) {
  * @param string domain 
  * @param boolean onlyDebug 
  */
-function requestNewCertificate (domain, onlyDebug, email) {
+function requestNewCertificate (domain, email) {
   let dryRunParameter = '';
-  if (onlyDebug) {
+  if (config.get('isDryRun')) {
     dryRunParameter = '--dry-run';
   }
   logger.log('info', 'Requesting for a new certificate');
   const certCommand = `echo "Y" | certbot certonly --manual \
     --manual-auth-hook "node /app/src/setDnsChallenge.js" \
     --cert-name ${domain} \
-    -d *.${domain} -m ${email} ${dryRunParameter}`
-    logger.log('info', certCommand);
+    -d *.${domain} -m ${email} ${dryRunParameter}`;
+  logger.log('info', certCommand);
   const res = execSync(certCommand);
   logger.log('info', 'Response while requesting for the certificate: ', res.toString());
 }
@@ -162,8 +175,8 @@ function getDirectoriesWithSecrets () {
  * certificate may be saved in /etc/letsencrypt/live/pryv-li or /etc/letsencrypt/live/pryv-li-0001 or
  * similar directory so we will find the directory that is the last edited
  */
-function getNewCertDir (certDir) {
-  return execSync(`ls -td ${certDir}*/ | head -1`).toString().trim();
+function getLatestSubDir (dir) {
+  return execSync(`ls -td ${dir}*/ | head -1`).toString().trim();
 }
 
 /**
@@ -173,15 +186,20 @@ function getNewCertDir (certDir) {
  * @param string domain
  */
 function copyCertificate (certDir, domain) {
-  logger.log('info', 'Copying ssl certificate');
-  const newCertDir = getNewCertDir(certDir);
-  const directories = getDirectoriesWithSecrets();
+  logger.log('info', 'Copying ssl certificate from ' + certDir);
+  const latestCertDir = getLatestSubDir(certDir);
+  const nginxSecretsDirectories = getDirectoriesWithSecrets();
 
-  directories.forEach(directory => {
-    if (directory.length !== 0) {
-      logger.log('info', `Copying certificate from: ${newCertDir}fullchain.pem to: ${directory}/bundle.crt`)
-      fs.copyFileSync(`${newCertDir}fullchain.pem`, `${directory}/${domain}-bundle.crt`);
-      fs.copyFileSync(`${newCertDir}privkey.pem`, `${directory}/${domain}-key.pem`);
+  nginxSecretsDirectories.forEach(nginxSecretsDir => {
+    if (nginxSecretsDir.length !== 0) {
+      const certPath = path.join(latestCertDir, 'fullchain.pem');
+      const nginxCertPath = path.join(nginxSecretsDir, domain + '-bundle.crt');
+      const keyPath = path.join(latestCertDir, 'privkey.pem');
+      const nginxKeyPath = path.join(nginxSecretsDir, domain + '-key.pem');
+      
+      logger.log('info', `Copying certificate from: ${certPath} to: ${nginxCertPath}`)
+      fs.copyFileSync(certPath, nginxCertPath);
+      fs.copyFileSync(keyPath, nginxKeyPath);
     }
   });
 }
@@ -193,8 +211,8 @@ function copyCertificate (certDir, domain) {
  */
 function checkCertificateInFollowers (certDir) {
   logger.log('info', 'Checking certificates in the followers');
-  const followersSettings = JSON.parse(fs.readFileSync(config.get('followerSettingsFile'))).followers;
-  const newCertDir = getNewCertDir(certDir);
+  const followersSettings = JSON.parse(fs.readFileSync(config.get('leader:configPath'))).followers;
+  const latestCertDir = getLatestSubDir(certDir);
   Object.keys(followersSettings).forEach(followerkey => {
     let follower = followersSettings[followerkey].url;
     if (follower.startsWith('https://')) {
@@ -204,7 +222,8 @@ function checkCertificateInFollowers (certDir) {
         .trim();
 
       const certificateSeparator = 'END CERTIFICATE-----';
-      let mainCert = fs.readFileSync(`${newCertDir}fullchain.pem`).toString()
+      const latestCert = path.join(latestCertDir, 'fullchain.pem');
+      const mainCert = fs.readFileSync(latestCert).toString()
         .split(certificateSeparator)[0]
         .trim() + certificateSeparator;
 

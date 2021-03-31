@@ -9,7 +9,7 @@ const logger = require('./logger').getLogger('apiCalls');
  * certificates
  * @param {*} baseUrl
  */
-exports.notifyAdmin = async (baseUrl, servicesToRestart) => {
+exports.notifyLeader = async (baseUrl, servicesToRestart) => {
   try {
     const token = await loginLeader(baseUrl);
     logger.log('info', 'Notifying admin');
@@ -26,8 +26,8 @@ async function loginLeader (baseUrl) {
   const USERNAME = 'initial_user';
   let password;
   
-  if (fs.existsSync(config.get('credentialsPath'))) {
-    password = fs.readFileSync(config.get('credentialsPath')).toString().trim();
+  if (fs.existsSync(config.get('leader:credentialsPath'))) {
+    password = fs.readFileSync(config.get('leader:credentialsPath')).toString().trim();
   } else {
     throw new Error('Initial user password was not found!');
   }

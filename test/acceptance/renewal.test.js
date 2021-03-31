@@ -9,8 +9,10 @@ const fs = require('fs');
 const nock = require('nock');
 const chai = require('chai');
 const assert = chai.assert;
-let childProcess = require('child_process');
-const mockupDir = './test/mockups/';
+const childProcess = require('child_process');
+const mockupDir = 'test/mockups/';
+const config = require('../../src/config');
+const platformConfig = require('../../src/platformConfig');
 
 /**
  * Helper to form string date how long the certificate is valid
@@ -52,14 +54,12 @@ var requireReload = function (modulePath) {
  */
 function execSyncMock (command, days) {
   if (isCommandToGetCertificateExpirationDate(command)) {
-
     return 'date=' + generateFutureDate(days) ; // how many days certificate is valid
   } else if (isCommandToGetNginxSecretsDir(command)) {
 
     // mockup dir where nginx certificates exists
     return mockupDir + 'nginx-directory-with-certs';
   } else if (isCommandToGetLetsencryptDir(command)) {
-
     // mockup dir where letsencrypt would save the certificates
     return mockupDir + 'letsencrypt/pryv.li/';
   } else if (isCommandToGetPartOfCertificate(command)) {
@@ -98,7 +98,7 @@ describe('SSL certificates renewal', () => {
       };
       requireReload('../../src/config');
       const { renewCertificate } = requireReload('../../src/renew-certificate');
-      nock('https://lead.pryv.li')
+      nock(config.get('leader:url'))
         .post('/auth/login',
           (body) => {
             adminLeaderLoginRequest = body;
@@ -106,7 +106,7 @@ describe('SSL certificates renewal', () => {
           })
         .reply(200, { token: 'test-token' });
       
-      nock('https://lead.pryv.li')
+        nock(config.get('leader:url'))
         .post('/admin/notify',
           (body) => {
             adminLeaderNotifyRequest = body;
@@ -129,13 +129,13 @@ describe('SSL certificates renewal', () => {
       fs.rmdirSync(mockupDir + 'letsencrypt/');
     });
 
-    it('Should copy certificate to letsencrypt dir from nginx dir', () => {
-      assert.isTrue(fs.existsSync(mockupDir + getFullChainFilePath()));
-      assert.isTrue(fs.existsSync(mockupDir + getPrivKeyFilePath()));
-    });
     it('Should backup certificate', () => {
       assert.isTrue(fs.existsSync(mockupDir + 'letsencrypt/tmp/pryv.li/fullchain.pem'));
       assert.isTrue(fs.existsSync(mockupDir + 'letsencrypt/tmp/pryv.li/privkey.pem'));
+    });
+    it('Should copy certificate to letsencrypt dir from nginx dir', () => {
+      assert.isTrue(fs.existsSync(mockupDir + getFullChainFilePath()));
+      assert.isTrue(fs.existsSync(mockupDir + getPrivKeyFilePath()));
     });
     it('Should read password from credentials file', () => {
       assert.deepEqual(adminLeaderLoginRequest, { username: 'initial_user', password: 'abc' });
@@ -152,7 +152,7 @@ describe('SSL certificates renewal', () => {
       fs.rmdirSync(mockupDir + 'letsencrypt/');
     });
     it('Should not start the renewal process', async () => {
-      process.env.DEBUG = false;
+      config.set('debug', false);
       let otherCommandWasCalled = false;
       // mock execSync
       childProcess.execSync = function (command) {

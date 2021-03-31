@@ -1,0 +1,15 @@
+{
+  "debug": false,
+  "dryRun": true,
+  "platformYmlPath": "test/mockups/platform.yml",
+  "waitUntilFollowersReloadMs": 1,
+  "letsencrypt": {
+    "certsDir": "test/mockups/letsencrypt",
+    "cron": "0 1 * * *"
+  },
+  "leader": {
+    "url": "http://pryvio_config_leader:7000",
+    "credentialsPath": "test/mockups/credentials.txt",
+    "configPath": "test/mockups/config-leader.json"
+  }
+}

@@ -2,7 +2,7 @@
 const fs = require('fs');
 const yaml = require('yamljs');
 const { execSync } = require('child_process');
-const { notifyAdmin } = require('/app/src/apiCalls');
+const { notifyLeader } = require('/app/src/apiCalls');
 
 const logger = require('./logger').getLogger('setDnsChallenge');
 
@@ -16,10 +16,10 @@ const logger = require('./logger').getLogger('setDnsChallenge');
     const dnsChallenge = process.env.CERTBOT_VALIDATION.toString();
     logger.info('info', 'Setting DNS Challenge: ' + dnsChallenge);
     await writeAcmeChallengeToPlatformYaml(platformConfig, dnsChallenge, platformPath);
-    await notifyAdmin(baseUrl, ['pryvio_dns']);
+    await notifyLeader(baseUrl, ['pryvio_dns']);
     const dnsAddressesToCheck = getDnsAddressesToCheck();
     logger.log('info', 'verifying TXT entry in DNS servers at: ' + dnsAddressesToCheck);
-    for (let i = 0; i < dnsAddressesToCheck.length; i++){
+    for (let i = 0; i < dnsAddressesToCheck.length; i++) {
       await checkDNSAnswer(dnsChallenge, domain, dnsAddressesToCheck[i]);
     }
     logger.log('info', 'End letsencrypt');

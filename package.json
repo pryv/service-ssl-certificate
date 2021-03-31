@@ -3,10 +3,11 @@
   "description": "Pryv.io package for renewing wildcard certificates",
   "private": true,
   "scripts": {
-    "test": "DEBUG=true PLATFORM_YML=./test/mockups/platform.yml CERT_DIR=./test/mockups/letsencrypt  INIT_USER_CREDENTIALS=./test/mockups/credentials.txt CONFIG_LEADER_FILEPATH=./test/mockups/config-leader.json WAIT_UNTIL_FOLLOWERS_RELOAD_MS=1 mocha 'test/acceptance/' --timeout 50000"
+    "test": "./node_modules/.bin/mocha 'test/acceptance/' --config ./test/test-config.json"
   },
   "dependencies": {
     "nconf": "^0.10.0",
+    "nconf-yaml": "^1.0.2",
     "node-cron": "^2.0.3",
     "superagent": "^6.1.0",
     "winston": "^3.3.3",

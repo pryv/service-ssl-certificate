@@ -1,5 +1,5 @@
 // @flow
-
+const fs = require('fs');
 const nconf = require('nconf');
 
 // 1. `process.env`
@@ -9,26 +9,33 @@ nconf.env().argv();
 
 // 3. Values in `config.json`
 //
-const configFile = nconf.get('config');
+let configFile = nconf.get('config');
+
+if (fs.existsSync(configFile)) {
+  configFile = fs.realpathSync(configFile);
+  console.info('using custom config file: ' + configFile);
+} else {
+  console.error('Cannot find custom config file: ' + configFile);
+}
+
 if (configFile != null) nconf.file({ file: configFile});
 
 // 4. Any default values
 //
 nconf.defaults({
-  debug: isDebugMode(),
-  platformYmlPath: (process.env.PLATFORM_YML) ? process.env.PLATFORM_YML : '/app/conf/platform.yml',
-  certMainDir: (process.env.CERT_DIR) ? process.env.CERT_DIR : '/etc/letsencrypt/live',
-  waitUntilFollowersReloadMs: (process.env.WAIT_UNTIL_FOLLOWERS_RELOAD_MS) ? process.env.WAIT_UNTIL_FOLLOWERS_RELOAD_MS : 30000,
-  followerSettingsFile: (process.env.CONFIG_LEADER_FILEPATH) ? process.env.CONFIG_LEADER_FILEPATH : '/app/conf/config-leader.json',
-  credentialsPath: (process.env.INIT_USER_CREDENTIALS) ? process.env.INIT_USER_CREDENTIALS : '/app/credentials/credentials.txt',
+  debug: false,
+  dryRun: true,
+  platformYmlPath: '/app/conf/platform.yml',
+  waitUntilFollowersReloadMs: 30000,
   letsencrypt: {
+    certsDir: '/etc/letsencrypt/live',
     cron: '0 1 * * *',
+  },
+  leader: {
+    url: 'http://pryvio_config_leader:7000/',
+    credentialsPath: '/app/credentials/credentials.txt',
+    configPath: '/app/conf/config-leader.json',
   },
 });
 
 module.exports = nconf;
-
-function isDebugMode () {
-  const debug = process.env.DEBUG;
-  return debug != null && debug.toString().toLowerCase() === 'true';
-}
