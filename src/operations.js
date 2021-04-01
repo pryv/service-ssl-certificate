@@ -11,12 +11,13 @@ const parseCertificate = bluebird.promisify(pem.readCertificateInfo);
 const config = require('./config');
 const logger = require('./logger').getLogger('operations');
 
+const templatesDir = config.get('leader:templatesPath');
+
 /**
  * Returns fullpath to directories containing directory named "secret".
  */
 const getTemplateSecretsDirectories = () => {
-  const templatesDir = config.get('leader:templatesPath');
-
+  
   const secretDirs = [];
   findSecretDirs(templatesDir);
   return secretDirs;
@@ -61,37 +62,40 @@ module.exports.sleep = (ms) => {
 }
 
 /**
- * For the first time in systems that already have the certificate,
- * they will exist only in the nginx config. Copy them to letsencrypt folder
- */
+ * When running for the first time, we'll have generated the SSL certificate manually.
+ * So we must fetch it from NGINX's secret/ folder
+ 
 module.exports.copyCertificatesFromNginxIfNeeded = (certDir, domain) => {
-  if (fs.existsSync(path.join(certDir, 'fullchain.pem')) &&
-      fs.existsSync(path.join(certDir, 'privkey.pem'))) {
+  const letsEncryptCert = path.join(certDir, 'fullchain.pem');
+  const letsEncryptKey = path.join(certDir, 'privkey.pem');
+
+  if (fs.existsSync(letsEncryptCert) && fs.existsSync(letsEncryptKey)) {
     return;
   }
-  const directories = module.exports.getTemplateSecretsDirectories();
+  const directories = module.exports.getTemplateSecretsDirectories(templatesDir);
   if (directories.length > 0) {
     logger.log('info', 'Copying ssl certificate from nginx to letsencrypt directory');
     if (!fs.existsSync(certDir)) {
       fs.mkdirSync(certDir, { recursive: true });
     }
+    const nginxCert = path.join(directories[0], domain + '-bundle.crt');
+    const nginxKey = path.join(directories[0], domain + '-key.pem');
     if (
-      !fs.existsSync(path.join(directories[0], domain + '-bundle.crt')) &&
-      !fs.existsSync(path.join(directories[0], domain + '-key.pem'))
+      !fs.existsSync(nginxCert) && !fs.existsSync(nginxKey)
     ) {
       throw new Error(`The certificates are not found neither in letsencrypt directory: 
-      ${path.join(certDir, 'fullchain.pem')} and ${path.join(certDir, 'privkey.pem')}, neither in nginx secrets folder
-      ${path.join(directories[0], domain + '-bundle.crt')} and ${path.join(directories[0], domain + '-key.pem')}`);
+      ${path.join(certDir, 'fullchain.pem')} and ${letsEncryptKey}, neither in nginx secrets folder
+      ${nginxCert} and ${nginxKey}`);
     }
-    logger.log('info', `${path.join(directories[0], domain + '-bundle.crt')} => ${path.join(certDir, 'fullchain.pem')}`);
-    fs.copyFileSync(path.join(directories[0], domain + '-bundle.crt'), path.join(certDir, 'fullchain.pem'));
-    fs.copyFileSync(path.join(directories[0], domain + '-key.pem'), path.join(certDir, 'privkey.pem'));
+    logger.log('info', `${nginxCert} => ${letsEncryptCert}`);
+    fs.copyFileSync(nginxCert, letsEncryptCert);
+    fs.copyFileSync(nginxKey, letsEncryptKey);
   }
-}
+}*/
 
 /**
 * Check if certificate is still valid for at lease 30 days
-*/
+
 module.exports.backupCurrentCertificate = (certDir, certBackupDir) => {
   logger.log('info', `Backing up current certificates from: ${certDir} to ${certBackupDir}`);
   if (!fs.existsSync(certBackupDir)) {
@@ -109,11 +113,11 @@ module.exports.backupCurrentCertificate = (certDir, certBackupDir) => {
   if (fs.existsSync(sourceKeyPath)) {
     fs.copyFileSync(sourceKeyPath, backupKeyPath);
   }
-}
+}*/
 
 /**
  * In case of error - return old certificate and log error
- */
+
 module.exports.loadOldCertificateFromBackup = (certDir, certBackupDir) => {
   logger.log('error', `Error: Loading old certificates if they exists from ${certBackupDir} because of the errors mentioned above`);
 
@@ -128,17 +132,32 @@ module.exports.loadOldCertificateFromBackup = (certDir, certBackupDir) => {
   if (fs.existsSync(backupKeyPath)) {
     fs.copyFileSync(backupKeyPath, sourceKeyPath);
   }
-}
+} */
 
 /**
  * certificate may be saved in /etc/letsencrypt/live/pryv-li or /etc/letsencrypt/live/pryv-li-0001 or
  * similar directory so we will find the directory that is the last edited
  */
 const getLatestSubDir = (dir) => {
+
+  let maxTime = 0;
+  let latestDir;
+  const dirs = fs.readdirSync(dir, { withFileTypes: true });
+  dirs.forEach(d => {
+    const fullPath = path.join(dir, d.name);
+    const dirData = fs.statSync(fullPath);
+    const modifiedTimeMs = dirData.mtimeMs;
+    if ( modifiedTimeMs > maxTime ) {
+      maxTime = modifiedTimeMs;
+      latestDir = fullPath;
+    }
+  });
+
+  return latestDir;
   
-  return execSync(`ls -td ${dir}*/ | head -1`).toString().trim();
+  //return execSync(`ls -td ${dir}*/ | head -1`).toString().trim();
 };
-module.exports.getLatestSubDir;
+module.exports.getLatestSubDir = getLatestSubDir;
 
 /**
  * Propagate certificates to all directories
@@ -148,8 +167,8 @@ module.exports.getLatestSubDir;
  */
 module.exports.copyCertificate = (certDir, domain) => {
   logger.log('info', 'Copying ssl certificate from ' + certDir);
-  const latestCertDir = getLatestSubDir(certDir);
-  const nginxSecretsDirectories = module.exports.getTemplateSecretsDirectories();
+  const latestCertDir = module.exports.getLatestSubDir(certDir);
+  const nginxSecretsDirectories = module.exports.getTemplateSecretsDirectories(templatesDir);
 
   nginxSecretsDirectories.forEach(nginxSecretsDir => {
     if (nginxSecretsDir.length !== 0) {
@@ -173,7 +192,7 @@ module.exports.copyCertificate = (certDir, domain) => {
 module.exports.checkCertificateInFollowers = (certDir) => {
   logger.log('info', 'Checking certificates in the followers');
   const followersSettings = JSON.parse(fs.readFileSync(config.get('leader:configPath'))).followers;
-  const latestCertDir = getLatestSubDir(certDir);
+  const latestCertDir = module.exports.getLatestSubDir(certDir);
   Object.keys(followersSettings).forEach(followerkey => {
     let follower = followersSettings[followerkey].url;
     if (follower.startsWith('https://')) {
@@ -205,7 +224,7 @@ module.exports.checkCertificateInFollowers = (certDir) => {
 module.exports.checkCertificateInFollowers = (certDir) => {
   logger.log('info', 'Checking certificates in the followers');
   const followersSettings = JSON.parse(fs.readFileSync(config.get('leader:configPath'))).followers;
-  const latestCertDir = getLatestSubDir(certDir);
+  const latestCertDir = module.exports.getLatestSubDir(certDir);
   Object.keys(followersSettings).forEach(followerkey => {
     let follower = followersSettings[followerkey].url;
     if (follower.startsWith('https://')) {

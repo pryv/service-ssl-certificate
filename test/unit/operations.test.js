@@ -52,14 +52,20 @@ describe('operations', () => {
 
   describe('getTemplateSecretsDirectories()', () => {
     it('must return the directories with a secrets folder', async () => {
-      const dirs = getTemplateSecretsDirectories();
+      const templatesDir = config.get('leader:templatesPath');
+      const dirs = getTemplateSecretsDirectories(templatesDir);
       dirs.forEach(dir => {
-        const templatesDir = config.get('leader:templatesPath');
+        
         assert.isTrue(dir.startsWith(templatesDir));
         assert.isTrue(dir.endsWith('secret'))
       })
     });
   });
+
+  describe('copy', () => {
+
+  });
+
 
 });
 

@@ -97,7 +97,10 @@ describe('SSL certificates renewal', () => {
   before(() => {
     const getDirsStub = stub(operations, 'getTemplateSecretsDirectories');
     getDirsStub.returns([mockupDir + 'nginx-directory-with-certs']);
+    const getLatestDirStub = stub(operations, 'getLatestSubDir');
+    getLatestDirStub.returns(mockupDir + 'letsencrypt/pryv.li/')
   });
+
 
   describe('When certificate is valid for the 30 days or less', async () => {
     before(async () => {
@@ -137,6 +140,22 @@ describe('SSL certificates renewal', () => {
       fs.rmdirSync(mockupDir + 'letsencrypt/tmp/');
 
       fs.rmdirSync(mockupDir + 'letsencrypt/');
+    });
+
+    it('must send the DNS challenge to register', () => {
+
+    });
+    it('must create a new certificate in LetsEncrypt\'s live folder', () => {
+
+    });
+    it('must copy it in the template\'s NGINX secret directories', () => {
+
+    });
+    it('must sign in with leader using correct credentials', () => {
+
+    });
+    it('must notify leader to reboot NGINX', () => {
+
     });
 
     it('Should backup certificate', () => {

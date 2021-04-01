@@ -33,7 +33,7 @@ store.defaults({
   platformYmlPath: '/app/conf/platform.yml',
   waitUntilFollowersReloadMs: 30000,
   letsencrypt: {
-    certsDir: '/etc/letsencrypt/live',
+    liveDir: '/etc/letsencrypt/live',
     cron: '0 1 * * *',
   },
   leader: {

@@ -24,15 +24,15 @@ async function renewCertificate () {
 
   const domain = platformConfig.get('vars:MACHINES_AND_PLATFORM_SETTINGS:settings:DOMAIN:value');
   const email = platformConfig.get('vars:ADVANCED_API_SETTINGS:settings:LETSENCRYPT_EMAIL:value');
-  const certDir = path.join(config.get('letsencrypt:certsDir'), domain);
-  const certFile = path.join(certDir, 'fullchain.pem');
-  const keyFile = path.join(certDir, 'privkey.pem');
-  const certBackupDir = path.join(config.get('letsencrypt:certsDir'), '/tmp', domain);
+  const letsEncryptLiveDir = path.join(config.get('letsencrypt:liveDir'), domain);
+  const certFile = path.join(letsEncryptLiveDir, 'fullchain.pem');
+  const keyFile = path.join(letsEncryptLiveDir, 'privkey.pem');
+  const certBackupDir = path.join(config.get('letsencrypt:liveDir'), '/tmp', domain);
   const leaderUrl = config.get('leader:url');
 
   logger.log('info', `Checking the certificates for ${domain} domain`);
   try {
-    copyCertificatesFromNginxIfNeeded(certDir, domain);
+    //copyCertificatesFromNginxIfNeeded(letsEncryptLiveDir, domain);
 
     // if certificate does not exist or will expire soon, request for the new certificates
     if (
@@ -41,15 +41,15 @@ async function renewCertificate () {
       isTimeToRenewCertificate(certFile) ||
       config.get('debug:isActive')
     ) {
-      backupCurrentCertificate(certDir, certBackupDir);
+      //backupCurrentCertificate(letsEncryptLiveDir, certBackupDir);
       requestNewCertificate(domain, email);
-      copyCertificate(certDir, domain);
+      copyCertificate(letsEncryptLiveDir, domain);
       await notifyLeader(['pryvio_nginx']);
 
       // wait for 30 seconds so that followers would have time to restart
       logger.log('info', 'Waiting for half a minute until followers will reloaded');
       await sleep(config.get('waitUntilFollowersReloadMs'));
-      checkCertificateInFollowers(certDir);
+      checkCertificateInFollowers(letsEncryptLiveDir);
       logger.log('info', 'End letsencrypt');
     }
   } catch (err) {
@@ -58,7 +58,7 @@ async function renewCertificate () {
     } else {
       logger.log('error', err);
     }
-    loadOldCertificateFromBackup(certDir, certBackupDir);
+    //loadOldCertificateFromBackup(letsEncryptLiveDir, certBackupDir);
   }
 }
 exports.renewCertificate = renewCertificate;

@@ -8,7 +8,7 @@
   "platformYmlPath": "test/mockups/platform.yml",
   "waitUntilFollowersReloadMs": 1,
   "letsencrypt": {
-    "certsDir": "test/mockups/letsencrypt",
+    "liveDir": "test/mockups/letsencrypt",
     "cron": "0 1 * * *"
   },
   "leader": {
