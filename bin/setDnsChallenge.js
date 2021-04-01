@@ -4,13 +4,17 @@ const yaml = require('yamljs');
 const { execSync } = require('child_process');
 const { notifyLeader } = require('/app/src/apiCalls');
 
-const logger = require('./logger').getLogger('setDnsChallenge');
+const logger = require('../src/logger').getLogger('setDnsChallenge');
 
-const config = require('./config');
+const config = require('../src/config');
 
 (async () => {
   logger.log('info', 'Start letsencrypt');
   try {
+    // apply DNS validation token to DNS
+    // verify that they have received
+    
+
     const platformPath = config.get('platformYmlPath');
     const platformConfig = yaml.load(platformPath);
     const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;

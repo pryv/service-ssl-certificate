@@ -4,7 +4,7 @@ const cron = require('node-cron');
 const { renewCertificate } = require('/app/src/renew-certificate');
 const config = require('/app/src/config');
 
-const logger = require('./logger').getLogger('main');
+const logger = require('../src/logger').getLogger('main');
 
 logger.log('info', 'SSL certificate renewal service started');
 

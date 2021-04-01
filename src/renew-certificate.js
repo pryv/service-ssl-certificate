@@ -75,7 +75,7 @@ function requestNewCertificate (domain, email) {
   }
   logger.log('info', 'Requesting for a new certificate');
   const certCommand = `echo "Y" | certbot certonly --manual \
-    --manual-auth-hook "node /app/src/setDnsChallenge.js" \
+    --manual-auth-hook "node /app/bin/setDnsChallenge.js" \
     --cert-name ${domain} \
     -d *.${domain} -m ${email} ${dryRunParameter}`;
   logger.log('info', certCommand);

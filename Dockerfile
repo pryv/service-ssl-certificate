@@ -9,7 +9,7 @@ RUN apt-get update -y \
     && npm install
 
 # Make certificate renewal hook executable
-RUN chmod +x /app/src/setDnsChallenge.js
+RUN chmod +x /app/bin/setDnsChallenge.js
 
 # Run the command on container startup
-CMD node /app/src/main.js
+CMD node /app/bin/main.js
