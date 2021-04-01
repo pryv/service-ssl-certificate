@@ -1,6 +1,5 @@
 const winston = require('winston');
 
-
 function getLogger (label = 'default') {
   return winston.createLogger({
     level: 'info',

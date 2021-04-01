@@ -1,50 +1,38 @@
 #!/usr/bin/node
 const fs = require('fs');
+
 const yaml = require('yamljs');
-const { execSync } = require('child_process');
-const { notifyLeader } = require('/app/src/apiCalls');
 
+const { setDnsRecord } = require('../src/apiCalls');
+const { verifyTextRecord } = require('../src/operations');
 const logger = require('../src/logger').getLogger('setDnsChallenge');
-
 const config = require('../src/config');
+const platformConfig = require('../src/platformConfig');
 
 (async () => {
-  logger.log('info', 'Start letsencrypt');
+  logger.log('info', 'Start LetsEncrypt');
   try {
-    // apply DNS validation token to DNS
-    // verify that they have received
     
-
-    const platformPath = config.get('platformYmlPath');
-    const platformConfig = yaml.load(platformPath);
-    const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
+    const domain = platformConfig.get('vars:MACHINES_AND_PLATFORM_SETTINGS:settings:DOMAIN:value');
     const dnsChallenge = process.env.CERTBOT_VALIDATION.toString();
-    logger.info('info', 'Setting DNS Challenge: ' + dnsChallenge);
-    await writeAcmeChallengeToPlatformYaml(platformConfig, dnsChallenge, platformPath);
-    await notifyLeader(['pryvio_dns']);
+    const subdomain = '_acme-challenge';
+    const dnsKey = subdomain + '.' + domain;
+
+    logger.log('info', 'Setting DNS Challenge: ' + dnsChallenge);
+    await setDnsRecord({ subdomain: { description: dnsChallenge } });
+
     const dnsAddressesToCheck = getDnsAddressesToCheck();
     logger.log('info', 'verifying TXT entry in DNS servers at: ' + dnsAddressesToCheck);
+
     for (let i = 0; i < dnsAddressesToCheck.length; i++) {
-      await checkDNSAnswer(dnsChallenge, domain, dnsAddressesToCheck[i]);
+      await verifyTextRecord(dnsKey, dnsChallenge, dnsAddressesToCheck[i]);
     }
-    logger.log('info', 'End letsencrypt');
+
+    logger.log('info', 'End LetsEncrypt');
   } catch (err) {
     logger.log('error', err);
   }
 })();
-
-/**
- * Save acme challenge to platform yaml 
- * that could be distributed to all followers afterwards
- * @param {*} platformConfig 
- * @param {*} dnsChallenge 
- * @param {*} platformPath 
- */
-async function writeAcmeChallengeToPlatformYaml (platformConfig, dnsChallenge, platformPath) {
-  logger.log('info', `Writting acme challenge to ${platformPath}`);
-  platformConfig.vars.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'] = { description: dnsChallenge };
-  fs.writeFileSync(platformPath, yaml.stringify(platformConfig, 6, 3));
-}
 
 /**
  * Return dns1 and dns2 parameters from dns.json config
@@ -56,36 +44,4 @@ function getDnsAddressesToCheck () {
   function distinct (value, index, self) {
     return self.indexOf(value) === index;
   }
-}
-/**
- * Verify that acme_challenge success
- * 
- * @param {*} dnsChallenge 
- * @param {*} domain
- */
-async function checkDNSAnswer (dnsChallenge, domain, ipToCheck) {
-  logger.log('info', `Checking if the DNS answers with the acme-challenge for ` + ipToCheck);
-  const timeout = 30000;
-  let dig_txt = '';
-  const startTime = new Date();
-  while (dig_txt !== dnsChallenge) {
-    try {
-      dig_txt = execSync(`dig @${ipToCheck} TXT +noall +answer +short _acme-challenge.${domain}`)
-        .toString()
-        .replace(/"/g, '')
-        .trim();
-    } catch (e) {
-      // don't throw an error, if the acme challenge will fail, it should fail with a timeout
-    }
-    let endTime = new Date();
-    if (endTime - startTime > timeout) {
-      logger.log('error', 'DNS check timed out');
-      throw new Error('Timeout');
-    }
-    await sleep(1000);
-  }
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }

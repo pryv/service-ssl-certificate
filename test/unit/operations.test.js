@@ -1,6 +1,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const child_process = require('child_process');
 
 const bluebird = require('bluebird');
 const cert2json = require('cert2json');
@@ -8,12 +9,14 @@ const pem = require('pem');
 const assert = require('chai').assert;
 const mkdirp = require('mkdirp');
 const rimraf = require('rimraf');
+const { stub } = require('sinon');
 
 const config = require('../../src/config');
 const { 
   isTimeToRenewCertificate,
   getTemplateSecretsDirectories,
- } = require('../../src/operations');
+  verifyTextRecord,
+} = require('../../src/operations');
 
 describe('operations', () => {
 
@@ -62,7 +65,24 @@ describe('operations', () => {
     });
   });
 
-  describe('copy', () => {
+  describe('verifyTextRecord', () => {
+    const ipAddress = '127.0.0.1';
+    const key = '_acme-challenge.rec.la';
+    const value = 'abc123'
+    let digStub;
+    before(() => {
+      digStub = stub(child_process, 'execSync');
+      console.log(`dig @${ipAddress} TXT +noall +answer +short ${key}`, 'waited for');
+      digStub.withArgs(`dig @${ipAddress} TXT +noall +answer +short ${key}`);
+      digStub.returns('"' + value + '"');
+    });
+    after(() => {
+      digStub.restore();
+    });
+    it('must work', async () => {
+      console.log(child_process.execSync('abc'));
+      assert.isTrue(await verifyTextRecord(key, value, ipAddress, 100, 2));
+    });
 
   });
 
