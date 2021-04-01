@@ -1,0 +1,25 @@
+---
+http:
+  ip: "0.0.0.0" 
+database:
+  host: "mongodb"
+influxdb:
+  host: "influxdb"
+  port: 8086
+trace:
+  enable: false
+  agent:
+    host: "jaeger"
+metadataUpdater:
+  host: "127.0.0.1"
+  port: 9000
+nats:
+  uri: "nats://core:4222"
+services:
+  register:
+    url: "https://reg.DOMAIN"
+serviceInfoUrl: "https://reg.DOMAIN/service/info"
+logs:
+  console:
+    active: true
+    level: "info"

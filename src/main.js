@@ -6,7 +6,7 @@ const logger = require('./logger').getLogger('main');
 
 logger.log('info', 'SSL certificate renewal service started');
 
-if (config.get('debug')) {
+if (config.get('debug:isActive')) {
   logger.log('info', 'debug mode is on, running every 5min with --dry-run');
   cron.schedule('*/5 * * * *', () => {
     logger.log('info', 'Checking certificates', new Date().toISOString());

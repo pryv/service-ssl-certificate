@@ -1,0 +1,25 @@
+version: '3.5'
+services:
+  reverse_proxy:
+    image: "eu.gcr.io/pryvio/nginx:1.3.40"
+    container_name: pryvio_nginx
+    networks:
+      - frontend
+    ports:
+      - "443:443"
+    volumes:
+      - ${PRYV_CONF_ROOT}/pryv/nginx/conf/:/app/conf/:ro
+      - ${PRYV_CONF_ROOT}/pryv/nginx/log/:/app/log/
+    restart: always
+
+  app_web_auth3:
+    image: "docker.io/pryvio/app-web-auth3:1.0.4"
+    container_name: pryvio_app_web_auth3
+    networks: 
+      - frontend
+    restart: always
+  
+networks:
+  frontend:
+    driver: bridge
+    name: pryv_frontend

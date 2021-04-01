@@ -1,0 +1,28 @@
+{
+  "logs": {
+    "prefix": "",
+    "console": { 
+      "active": true,
+      "level": "warn",
+      "colorize": true 
+    }, 
+    "file": {
+      "active": false
+    }
+  },
+  "email": {
+    "message": {
+      "from": EMAIL_SENDER
+    }
+  },
+  "smtp": EMAIL_SMTP_SETTINGS,
+  "sendmail": EMAIL_SENDMAIL_SETTINGS,
+  "http": {
+    "ip": "0.0.0.0",
+    "port": 9000,
+    "auth": "CORE_MAIL_KEY"
+  },
+  "templates": {
+    "defaultLang": "EMAIL_TEMPLATES_DEFAULT_LANG"
+  }
+}

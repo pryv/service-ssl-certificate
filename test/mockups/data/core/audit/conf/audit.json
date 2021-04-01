@@ -1,0 +1,26 @@
+{
+  "core": {
+    "url": "http://core:3000"
+  },
+  "dataFolder": "/app/data", 
+  "http": {
+    "port": 5000,
+    "ip": "0.0.0.0"
+  },
+  "logs": {
+    "prefix": "audit",
+    "console": {
+      "active": true,
+      "level": "debug",
+      "colorize": true
+    },
+    "file": {
+      "active": false
+    },
+    "airbrake": {
+      "active": false,
+      "projectId": "",
+      "apiKey": ""
+    }
+  }
+}

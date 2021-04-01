@@ -4,16 +4,19 @@ const config = require('./config');
 
 const logger = require('./logger').getLogger('apiCalls');
 
+const CREDENTIALS_PATH = config.get('leader:credentialsPath');
+const LEADER_URL = config.get('leader:url');
+
 /**
  * Notify admin about new certificate to restart followers that uses the
  * certificates
- * @param {*} baseUrl
+ * @param {*} servicesToRestart
  */
-exports.notifyLeader = async (baseUrl, servicesToRestart) => {
+exports.notifyLeader = async (servicesToRestart) => {
   try {
-    const token = await loginLeader(baseUrl);
+    const token = await loginLeader(LEADER_URL);
     logger.log('info', 'Notifying admin');
-    const res = await request.post(baseUrl + '/admin/notify')
+    const res = await request.post(LEADER_URL + '/admin/notify')
       .set('Authorization', token)
       .send(servicesToRestart);
     return res.body;
@@ -22,20 +25,20 @@ exports.notifyLeader = async (baseUrl, servicesToRestart) => {
   }
 }
 
-async function loginLeader (baseUrl) {
+async function loginLeader () {
   const USERNAME = 'initial_user';
   let password;
   
-  if (fs.existsSync(config.get('leader:credentialsPath'))) {
-    password = fs.readFileSync(config.get('leader:credentialsPath')).toString().trim();
+  if (fs.existsSync(CREDENTIALS_PATH)) {
+    password = fs.readFileSync(CREDENTIALS_PATH).toString().trim();
   } else {
     throw new Error('Initial user password was not found!');
   }
-  return await requestToken(baseUrl, USERNAME, password);
+  return await requestToken(LEADER_URL, USERNAME, password);
 
-  async function requestToken (baseUrl, USERNAME, password) {
+  async function requestToken (LEADER_URL, USERNAME, password) {
     logger.log('info', 'Requesting token from config-leader');
-    const res = await request.post(baseUrl + '/auth/login')
+    const res = await request.post(LEADER_URL + '/auth/login')
       .send({
         username: USERNAME,
         password: password

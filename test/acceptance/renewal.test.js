@@ -6,13 +6,16 @@
  */
 // @flow
 const fs = require('fs');
-const nock = require('nock');
-const chai = require('chai');
-const assert = chai.assert;
 const childProcess = require('child_process');
+
+const nock = require('nock');
+const assert = require('chai').assert;
+const { stub } = require('sinon');
+
 const mockupDir = 'test/mockups/';
 const config = require('../../src/config');
 const platformConfig = require('../../src/platformConfig');
+const operations = require('../../src/operations');
 
 /**
  * Helper to form string date how long the certificate is valid
@@ -90,13 +93,18 @@ function deleteBackup () {
 describe('SSL certificates renewal', () => {
   let adminLeaderLoginRequest;
   let adminLeaderNotifyRequest;
+
+  before(() => {
+    const getDirsStub = stub(operations, 'getTemplateSecretsDirectories');
+    getDirsStub.returns([mockupDir + 'nginx-directory-with-certs']);
+  });
+
   describe('When certificate is valid for the 30 days or less', async () => {
     before(async () => {
       // mock execSync
       childProcess.execSync = function (command) {
-        return execSyncMock(command, 30);
+        return execSyncMock(command, 29);
       };
-      requireReload('../../src/config');
       const { renewCertificate } = requireReload('../../src/renew-certificate');
       nock(config.get('leader:url'))
         .post('/auth/login',
@@ -106,13 +114,15 @@ describe('SSL certificates renewal', () => {
           })
         .reply(200, { token: 'test-token' });
       
-        nock(config.get('leader:url'))
-        .post('/admin/notify',
-          (body) => {
-            adminLeaderNotifyRequest = body;
-            return true;
-          })
-        .reply(200, '');
+      nock(config.get('leader:url'))
+      .post('/admin/notify',
+        (body) => {
+          adminLeaderNotifyRequest = body;
+          return true;
+        })
+      .reply(200, '');
+
+      
       
       // start renewal
       await renewCertificate();
@@ -152,12 +162,12 @@ describe('SSL certificates renewal', () => {
       fs.rmdirSync(mockupDir + 'letsencrypt/');
     });
     it('Should not start the renewal process', async () => {
-      config.set('debug', false);
+      config.set('debug:isActive', false);
       let otherCommandWasCalled = false;
       // mock execSync
       childProcess.execSync = function (command) {
         if (isCommandToGetCertificateExpirationDate(command)) {
-          return 'date=' + generateFutureDate(31); // how many days certificate is valid
+          return 'date=' + generateFutureDate(32); // how many days certificate is valid
         } else if (isCommandToGetNginxSecretsDir(command)) {
           // mockup dir where nginx certificates exists
           return mockupDir + 'nginx-directory-with-certs';
@@ -166,7 +176,6 @@ describe('SSL certificates renewal', () => {
           return '';
         }
       };
-      requireReload('../../src/config');
       const { renewCertificate } = requireReload('../../src/renew-certificate');
       // start renewal
       renewCertificate();

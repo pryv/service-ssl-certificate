@@ -1,0 +1,128 @@
+{
+  "domain": "DOMAIN",
+  "hostnameOrIP": "https://reg.DOMAIN",
+  "access": {
+    "defaultAuthUrl": "DEFAULT_AUTH_URL",
+    "trustedAuthUrls": TRUSTED_AUTH_URLS
+  },
+  "service": {
+    "serial": "2019061301",
+    "name": "PLATFORM_NAME",
+    "support": "SUPPORT_URL",
+    "terms": "TERMS_OF_USE_URL",
+    "register": "https://reg.DOMAIN",
+    "home": "https://sw.DOMAIN",
+    "eventTypes": "EVENT_TYPES_URL",
+    "assets": SERVICE_INFO_ASSETS,
+    "access": "https://access.DOMAIN/access",
+    "api": "https://{username}.DOMAIN"
+  },
+  "server": {
+    "ssl": "false",
+    "port": 9000
+  },
+  "auth": {
+    "coreSystemKey": "CORE_SYSTEM_KEY",
+    "authorizedKeys": {
+      "REGISTER_SYSTEM_KEY_1": {
+        "roles": ["system"]
+      },
+      "REGISTER_ADMIN_KEY": {
+        "roles": [
+          "admin"
+        ]
+      }
+    }
+  },
+  "dns": {
+    "port": 5353,
+    "ip": "0.0.0.0",
+    "name": "reg.DOMAIN",
+    "domain": "DOMAIN",
+    "domains": ["DOMAIN"],
+    "certificateAuthorityAuthorization": {
+      "issuer": "SSL_CAA_ISSUER"
+    },
+    "staticDataInDomain": {
+      "sw": {
+        "ip": "STATIC_WEB_IP_ADDRESS"
+      },
+      "mfa": {
+        "ip": "STATIC_WEB_IP_ADDRESS"
+      },
+      "reg": {
+        "ip": "REG_MASTER_IP_ADDRESS"
+      },
+      "adm": {
+        "ip": "REG_MASTER_IP_ADDRESS"
+      },
+      "access": {
+        "alias": {
+          "name": "reg.DOMAIN"
+        }
+      },
+      "service": {
+        "alias": {
+          "name": "reg.DOMAIN"
+        }
+      }, 
+      "mail": {
+        "ip": "REG_MASTER_IP_ADDRESS"
+      },
+      "lead": {
+        "ip": "REG_MASTER_IP_ADDRESS"
+      },
+      "dns1": {
+        "ip": "REG_MASTER_IP_ADDRESS"
+      },
+      "dns2": {
+        "ip": "REG_MASTER_IP_ADDRESS"
+      },
+      "graf": {
+        "ip": "REG_MASTER_IP_ADDRESS"
+      },
+      "loki": {
+        "ip": "REG_MASTER_IP_ADDRESS"
+      }
+    },
+    "customEntries": DNS_CUSTOM_ENTRIES,
+    "domain_A": "DNS_ROOT_DOMAIN_A_RECORD",
+    "mail": [
+      {
+        "name": "spool.mail.gandi.net",
+        "ip": "217.70.184.6",
+        "ttl": 10800,
+        "priority": 10
+      },
+      {
+        "name": "fb.mail.gandi.net",
+        "ip": "217.70.184.162",
+        "ttl": 10800,
+        "priority": 50
+      }
+    ],
+    "nameserver": NAME_SERVER_ENTRIES,
+    "rootTXT": {
+      "description": DNS_ROOT_TXT_ARRAY
+    }
+  },
+  "net": {
+    "hostings": HOSTINGS_AND_CORES,
+    "providers": HOSTINGS_PROVIDERS
+  },
+  "redis": {
+    "host": "redis",
+    "port": 6379
+  },
+  "airbrake": {
+    "disable": false,
+    "key": "88ec825519c81c3a248a5d19284970a0",
+    "projectId": "95889"
+  },
+  "invitationTokens": INVITATION_TOKENS,
+  "reporting": {
+    "licenseName": "LICENSE_NAME",
+    "role": "reg-master",
+    "templateVersion": "TEMPLATE_VERSION"
+  }
+}

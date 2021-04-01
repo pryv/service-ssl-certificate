@@ -1,0 +1,143 @@
+version: '3.5'
+services:
+
+  reverse_proxy: 
+    image: "eu.gcr.io/pryvio/nginx:1.3.40"
+    container_name: pryvio_nginx
+    networks: 
+      - frontend
+    ports: 
+      - "80:80"
+      - "443:443"
+    volumes: 
+      - ${PRYV_CONF_ROOT}/pryv/nginx/conf/:/app/conf/:ro
+      - ${PRYV_CONF_ROOT}/pryv/nginx/log/:/app/log/
+    links: 
+      - core
+      - hfs
+      - preview
+      - condensate
+    restart: always
+
+  core: 
+    image: "eu.gcr.io/pryvio/core:1.7.0-rc01"
+    container_name: pryvio_core
+    networks:
+      - frontend
+      - backend
+    volumes: 
+      - ${PRYV_CONF_ROOT}/pryv/core/conf/:/app/conf/:ro
+      - ${PRYV_CONF_ROOT}/pryv/core/data/:/app/data/
+      - ${PRYV_CONF_ROOT}/pryv/core/log/:/app/log/
+      - /dev/log:/dev/log # for audit log
+    environment: 
+      - NUM_PROCS=4
+      - STARTING_PORT=3000
+    links: 
+      - mongodb
+      - influxdb
+    restart: always
+    hostname: "$HOSTNAME"
+
+  mfa: 
+    image: "eu.gcr.io/pryvio/service-mfa:1.0.2"
+    container_name: pryvio_mfa
+    networks:
+      - frontend
+    volumes: 
+      - ${PRYV_CONF_ROOT}/pryv/mfa/conf/:/app/conf/:ro
+      - ${PRYV_CONF_ROOT}/pryv/mfa/log/:/app/log/
+    links: 
+      - core
+    restart: always
+
+  preview: 
+    image: "eu.gcr.io/pryvio/preview:1.7.0-rc01"
+    container_name: pryvio_preview
+    networks: 
+      - frontend
+      - backend
+    volumes: 
+      - ${PRYV_CONF_ROOT}/pryv/preview/conf/:/app/conf/:ro
+      - ${PRYV_CONF_ROOT}/pryv/core/data/:/app/data/
+      - ${PRYV_CONF_ROOT}/pryv/preview/log/:/app/log/
+    links: 
+      - mongodb
+    restart: always
+    hostname: "$HOSTNAME"
+
+  hfs:
+    image: "eu.gcr.io/pryvio/hfs:1.7.0-rc01"
+    container_name: pryvio_hfs
+    networks:
+      - frontend
+      - backend
+    volumes:
+      - ${PRYV_CONF_ROOT}/pryv/hfs/conf/:/app/conf/:ro
+      - ${PRYV_CONF_ROOT}/pryv/hfs/data/:/app/data/
+      - ${PRYV_CONF_ROOT}/pryv/hfs/log/:/app/log/
+    environment:
+      - NUM_PROCS=2
+    links:
+      - influxdb
+      - core
+    restart: always
+    hostname: "$HOSTNAME"
+
+  webhooks:
+    image: "eu.gcr.io/pryvio/webhooks:1.7.0-rc01"
+    container_name: pryvio_webhooks
+    networks:
+      - backend
+    volumes: 
+      - ${PRYV_CONF_ROOT}/pryv/webhooks/conf/:/app/conf/:ro
+      - ${PRYV_CONF_ROOT}/pryv/webhooks/log/:/app/log/
+    links: 
+      - core
+    restart: always
+
+  mongodb:
+    image: "eu.gcr.io/pryvio/mongodb:1.6.0"
+    container_name: pryvio_mongodb
+    networks:
+      - backend
+    volumes:
+      - ${PRYV_CONF_ROOT}/pryv/mongodb/conf/:/app/conf/:ro
+      - ${PRYV_CONF_ROOT}/pryv/mongodb/data/:/app/data/
+      - ${PRYV_CONF_ROOT}/pryv/mongodb/log/:/app/log/
+      - ${PRYV_CONF_ROOT}/pryv/mongodb/backup/:/app/backup/
+    restart: always
+
+  influxdb:
+    image: "influxdb:1.7.8"
+    container_name: pryvio_influxdb
+    networks:
+      - backend
+    volumes:
+      - ${PRYV_CONF_ROOT}/pryv/influxdb/data/:/var/lib/influxdb
+      - ${PRYV_CONF_ROOT}/pryv/influxdb/backup/:/pryv/backup/
+    restart: always
+
+  condensate:
+    image: "eu.gcr.io/pryvio/condensate:0.0.5"
+    container_name: pryvio_condensate
+    networks:
+      - frontend
+    volumes:
+      - ./condensate/conf/:/app/conf/:ro
+      
+  promtail:
+    container_name: pryvio_promtail
+    image: grafana/promtail:2.0.0
+    volumes:
+      - ${PRYV_CONF_ROOT}/pryv/nginx/log:/var/log:ro
+      - ${PRYV_CONF_ROOT}/pryv/promtail/conf:/var/conf:ro
+    command: -config.file=/var/conf/promtail.yaml
+      
+networks:
+  frontend:
+    driver: bridge
+    name: pryv_frontend
+  backend:
+    driver: bridge
+    name: pryv_backend

@@ -1,0 +1,29 @@
+{
+  "env": "production",
+  "database": {
+    "host": "mongodb",
+    "port": 27017,
+    "name": "pryv-node",
+    "authUser": "",
+    "authPassword": ""
+  },
+  "nats": {
+    "uri": "nats://core:4222"
+  },
+  "logs": {
+    "console": {
+      "active": true,
+      "level": "info",
+      "colorize": true
+    },
+    "file": {
+      "active": false
+    },
+    "airbrake": {
+      "active": true,
+      "key": "ba44e430f8fdf66e820717660e838874",
+      "projectId": "247285"
+    }
+  },
+  "serviceInfoUrl": "https://reg.DOMAIN/service/info"
+}

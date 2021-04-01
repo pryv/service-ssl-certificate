@@ -6,17 +6,18 @@ const { notifyLeader } = require('/app/src/apiCalls');
 
 const logger = require('./logger').getLogger('setDnsChallenge');
 
+const config = require('./config');
+
 (async () => {
   logger.log('info', 'Start letsencrypt');
   try {
-    const platformPath = '/app/conf/platform.yml';
+    const platformPath = config.get('platformYmlPath');
     const platformConfig = yaml.load(platformPath);
     const domain = platformConfig.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
-    const baseUrl = `https://lead.${domain}`;
     const dnsChallenge = process.env.CERTBOT_VALIDATION.toString();
     logger.info('info', 'Setting DNS Challenge: ' + dnsChallenge);
     await writeAcmeChallengeToPlatformYaml(platformConfig, dnsChallenge, platformPath);
-    await notifyLeader(baseUrl, ['pryvio_dns']);
+    await notifyLeader(['pryvio_dns']);
     const dnsAddressesToCheck = getDnsAddressesToCheck();
     logger.log('info', 'verifying TXT entry in DNS servers at: ' + dnsAddressesToCheck);
     for (let i = 0; i < dnsAddressesToCheck.length; i++) {
