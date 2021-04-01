@@ -7,6 +7,10 @@ const logger = require('./logger').getLogger('apiCalls');
 const CREDENTIALS_PATH = config.get('leader:credentialsPath');
 const LEADER_URL = config.get('leader:url');
 
+exports.setDnsRecord = async (dnsRecord, url) => {
+  return await request.post(url).send(dnsRecord);
+};
+
 /**
  * Notify admin about new certificate to restart followers that uses the
  * certificates
@@ -23,7 +27,7 @@ exports.notifyLeader = async (servicesToRestart) => {
   } catch (err) {
     logger.log('error', err);
   }
-}
+};
 
 async function loginLeader () {
   const USERNAME = 'initial_user';
