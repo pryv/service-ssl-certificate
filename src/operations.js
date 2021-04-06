@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const child_process = require('child_process');
 
 const bluebird = require('bluebird');
 const pem = require('pem');
@@ -80,8 +81,7 @@ module.exports.verifyTextRecord = async (key, value, ipAddress, timeoutMs = 3000
   const startTime = Date.now();
   while (dig_txt !== value) {
     try {
-      console.log(`dig @${ipAddress} TXT +noall +answer +short ${key}`, 'executed');
-      dig_txt = execSync(`dig @${ipAddress} TXT +noall +answer +short ${key}`)
+      dig_txt = child_process.execSync(`dig @${ipAddress} TXT +noall +answer +short ${key}`)
         .toString()
         .replace(/"/g, '')
         .trim();
@@ -89,7 +89,6 @@ module.exports.verifyTextRecord = async (key, value, ipAddress, timeoutMs = 3000
       // don't throw an error, if the acme challenge will fail, it should fail with a timeout
     }
     let endTime = Date.now();
-    console.log('checking', endTime, '-', startTime, '>', timeoutMs)
     if (endTime - startTime > timeoutMs) {
       logger.log('error', 'DNS check timed out after ' + timeoutMs + 'ms');
       throw new Error('Timeout: DNS check invalid after ' + timeoutMs + 'ms');
@@ -180,10 +179,10 @@ module.exports.copyCertificate = (certDir, domain) => {
   });
 }
 
-
-module.exports.sleep = (ms) => {
+const sleep = (ms) => {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
+};
+module.exports.sleep;
 
 
 

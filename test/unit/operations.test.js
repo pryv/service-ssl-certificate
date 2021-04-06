@@ -9,7 +9,7 @@ const pem = require('pem');
 const assert = require('chai').assert;
 const mkdirp = require('mkdirp');
 const rimraf = require('rimraf');
-const { stub } = require('sinon');
+const { stub, spy } = require('sinon');
 
 const config = require('../../src/config');
 const { 
@@ -65,23 +65,46 @@ describe('operations', () => {
     });
   });
 
-  describe('verifyTextRecord', () => {
+  describe('verifyTextRecord()', () => {
     const ipAddress = '127.0.0.1';
     const key = '_acme-challenge.rec.la';
     const value = 'abc123'
+    const timeoutMs = 100;
+    const retryRateMs = 2;
     let digStub;
-    before(() => {
-      digStub = stub(child_process, 'execSync');
-      console.log(`dig @${ipAddress} TXT +noall +answer +short ${key}`, 'waited for');
-      digStub.withArgs(`dig @${ipAddress} TXT +noall +answer +short ${key}`);
-      digStub.returns('"' + value + '"');
+    describe('when the value is set', () => {
+      before(() => {
+        digStub = stub(child_process, 'execSync');
+        digStub.withArgs(`dig @${ipAddress} TXT +noall +answer +short ${key}`);
+        digStub.returns('"' + value + '"');
+      });
+      after(() => {
+        digStub.restore();
+      });
+      it('returns true after being called once', async () => {
+        assert.isTrue(await verifyTextRecord(key, value, ipAddress, timeoutMs, retryRateMs));
+        assert.isTrue(digStub.calledOnce);
+      });
     });
-    after(() => {
-      digStub.restore();
-    });
-    it('must work', async () => {
-      console.log(child_process.execSync('abc'));
-      assert.isTrue(await verifyTextRecord(key, value, ipAddress, 100, 2));
+    describe('when the value is not set', () => {
+      before(() => {
+        digStub = stub(child_process, 'execSync');
+        digStub.withArgs(`dig @${ipAddress} TXT +noall +answer +short ${key}`);
+        digStub.returns('"something-else"');
+      });
+      after(() => {
+        digStub.restore();
+      });
+      it('throws an error after a timeout after calling it multiple times', async () => {
+        try {
+          await verifyTextRecord(key, value, ipAddress, timeoutMs, retryRateMs)
+          assert.fail('should have thrown');
+        } catch (e) {
+          assert.exists(e);
+          assert.include(e.message, 'Timeout: DNS check invalid after ' + timeoutMs + 'ms');
+          assert.isAbove(digStub.callCount, 1);
+        }
+      });
     });
 
   });
