@@ -15,7 +15,7 @@ const {
   isTimeToRenewCertificate,
   backupCurrentCertificate,
   copyCertificate,
-  checkCertificateInFollowers,
+  validateCertificateDeployed,
   loadOldCertificateFromBackup,
 } = require('./operations');
 
@@ -29,6 +29,8 @@ async function renewCertificate () {
   const keyFile = path.join(letsEncryptLiveDir, 'privkey.pem');
   const certBackupDir = path.join(config.get('letsencrypt:liveDir'), '/tmp', domain);
   const leaderUrl = config.get('leader:url');
+  const followers = JSON.parse(fs.readFileSync(config.get('leader:configPath'))).followers;
+  const followerUrls = Object.values(followers).map(f => f.url);
 
   logger.log('info', `Checking the certificates for ${domain} domain`);
   try {
@@ -49,7 +51,7 @@ async function renewCertificate () {
       // wait for 30 seconds so that followers would have time to restart
       logger.log('info', 'Waiting for half a minute until followers will reloaded');
       await sleep(config.get('waitUntilFollowersReloadMs'));
-      checkCertificateInFollowers(letsEncryptLiveDir);
+      validateCertificateDeployed(letsEncryptLiveDir, followerUrls);
       logger.log('info', 'End letsencrypt');
     }
   } catch (err) {

@@ -101,7 +101,6 @@ describe('SSL certificates renewal', () => {
     getLatestDirStub.returns(mockupDir + 'letsencrypt/pryv.li/')
   });
 
-
   describe('When certificate is valid for the 30 days or less', async () => {
     before(async () => {
       // mock execSync

@@ -8,6 +8,7 @@
   "dependencies": {
     "bluebird": "^3.7.2",
     "cert2json": "^1.0.10",
+    "get-ssl-certificate": "^2.3.3",
     "nconf": "^0.10.0",
     "nconf-yaml": "^1.0.2",
     "node-cron": "^2.0.3",

@@ -10,6 +10,7 @@ const assert = require('chai').assert;
 const mkdirp = require('mkdirp');
 const rimraf = require('rimraf');
 const { stub, spy } = require('sinon');
+const getSslCertificate = require('get-ssl-certificate');
 
 const config = require('../../src/config');
 const { 
@@ -107,6 +108,20 @@ describe('operations', () => {
       });
     });
 
+  });
+
+  describe('validateCertificateDeployed()', () => {
+    let getSslCertificateStub;
+    before(() => {
+      getSslCertificateStub = stub(getSslCertificate);
+    });
+    describe('when all hosts deployed it', () => {
+      
+    });
+    describe('when a host did not deploy it', () => {
+
+    });
+    
   });
 
 

@@ -6,8 +6,8 @@ const child_process = require('child_process');
 
 const bluebird = require('bluebird');
 const pem = require('pem');
-
 const parseCertificate = bluebird.promisify(pem.readCertificateInfo);
+const getSslCertificate = require('get-ssl-certificate');
 
 const config = require('./config');
 const logger = require('./logger').getLogger('operations');
@@ -103,28 +103,25 @@ module.exports.verifyTextRecord = async (key, value, ipAddress, timeoutMs = 3000
  * 
  * @param {*} certDir 
  */
-module.exports.checkCertificateInFollowers = (certDir) => {
+module.exports.validateCertificateDeployed = async (certDir, followers) => {
   logger.log('info', 'Checking certificates in the followers');
   const followersSettings = JSON.parse(fs.readFileSync(config.get('leader:configPath'))).followers;
   const latestCertDir = module.exports.getLatestSubDir(certDir);
-  Object.keys(followersSettings).forEach(followerkey => {
-    let follower = followersSettings[followerkey].url;
-    if (follower.startsWith('https://')) {
-      const domain = follower.split('//')[1];
-      let certInFollower = execSync(`echo | openssl s_client -servername ${domain} -connect ${domain}:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p'`)
-        .toString()
-        .trim();
+  const referenceCertificate = parseCertificate(fs.readFileSync(certPath(latestCertDir)));
+  const validityEndTimestamp = referenceCertificate.validity.end;
 
-      const certificateSeparator = 'END CERTIFICATE-----';
-      const latestCert = path.join(latestCertDir, 'fullchain.pem');
-      const mainCert = fs.readFileSync(latestCert).toString()
-        .split(certificateSeparator)[0]
-        .trim() + certificateSeparator;
+  Object.entries(followersSettings).forEach(async (followerkey, followerData) => {
+    let followerUrl = followerData.url;
+    if (followerUrl.startsWith('https://')) {
 
-      if (certInFollower === mainCert) {
-        logger.log('info', `Success: ${follower} did receive the certificate`);
+      const sslCertificate = await getSslCertificate(followerUrl);
+
+      const myTimestamp = (new Date(sslCertificate.valid_to)).getTime();
+      
+      if (validityEndTimestamp === myTimestamp) {
+        logger.log('info', `Success: ${followerUrl} did receive the certificate`);
       } else {
-        logger.log('info', `Error: ${follower} did not receive the certificate`);
+        logger.log('info', `Error: ${followerUrl} did not receive the certificate`);
       }
     }
   });
