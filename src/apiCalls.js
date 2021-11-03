@@ -1,8 +1,10 @@
 const request = require('superagent');
 const fs = require('fs');
-const config = require('./config');
 
-const logger = require('./logger').getLogger('apiCalls');
+const { getLogger, getConfigUnsafe } = require('@pryv/boiler');
+
+const logger = getLogger('apiCalls');
+const config = getConfigUnsafe(true);
 
 const CREDENTIALS_PATH = config.get('leader:credentialsPath');
 const LEADER_URL = config.get('leader:url');

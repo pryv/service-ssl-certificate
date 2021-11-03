@@ -1,0 +1,3 @@
+leader:
+  credentialsPath: "test/fixtures/credentials.txt"
+  url: "http://leader:8080/"
