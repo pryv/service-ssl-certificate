@@ -1,3 +1,8 @@
 leader:
-  credentialsPath: "test/fixtures/credentials.txt"
-  url: "http://leader:8080"
+  credentialsPath: "/app/leader-data/credentials.txt"
+  url: "http://pryvio_leader:9000"
+  templatesPath: "/app/leader-data/"
+acme:
+  isProduction: false
+  csrPath: "/app/conf/test-renew-ssl.pryv.io.csr"
+  email: tech@pryv.com

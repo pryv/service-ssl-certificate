@@ -10,48 +10,55 @@ const fs = require('fs');
 const _ = require('lodash');
 const nock = require('nock');
 const assert = require('chai').assert;
-const { stub } = require('sinon');
+const { stub, createStubInstance } = require('sinon');
 const YAML = require('yaml');
+const acme = require('acme-client');
 
 const fixturesDir = 'test/fixtures/';
 const { getConfig } = require('@pryv/boiler');
 const renewCertificate = require('../../src/renew-certificate');
+const { challengeCreateFn } = require('../../src/acme');
 
 describe('SSL certificates renewal', () => {
-  let config, leaderUrl, credentials, platformSettings;
+  let config, leaderUrl, credentials, platformSettings, stubCertificate;
 
   before(async () => {
     config = await getConfig();
     leaderUrl = config.get('leader:url');
     credentials = fs.readFileSync(config.get('leader:credentialsPath'), 'utf-8');
     platformSettings = YAML.parse(fs.readFileSync(__dirname + '/../fixtures/platform.yml', 'utf-8'));
+    stubCertificate = fs.readFileSync(__dirname + '/../fixtures/test-renew-ssl.pryv.io-bundle.crt', 'utf-8').toString();
   });
 
   describe.only('When certificate is valid for the 30 days or less', () => {
     let loginRequestBody, isSettingsFetched, updateRequestBody, firstNotifyBody,
-        secondNotifyBody;
+        secondNotifyBody, acmeClientStub;
     before(async () => {
       /**
-       * - setup fake creds OK
-       * - setup fake leader/login call
-       * - make first acme thing
-       * - setup fake leader/getSettings
-       * - setup fake leader/updateSettings
-       * - setup fake leader/update-dns
+       * - fake acme thing
+       * - fake pre-hook callback
        * - setup fake dig
-       * - setup fake leader/update-nginx
        * http://leader:8080/admin/settings
        * http://leader:8080/admin/settings
        *
        */
-      console.log('setting mock for', leaderUrl)
+      const token = 'token-for-leader';
+      const challenge = 'i-am-the-dns-challenge'
+
+      acmeClientStub = stub(acme, "Client").returns({
+        auto: async () => {
+          await challengeCreateFn(token, platformSettings.vars, null, null, challenge);
+          return stubCertificate;
+        },
+      });
+
       nock(leaderUrl)
         .post('/auth/login',
           (body) => {
             loginRequestBody = body;
             return true;
           })
-        .reply(200, { token: 'test-token' });
+        .reply(200, { token });
       nock(leaderUrl)
         .get('/admin/settings', () => {
           isSettingsFetched = true;
@@ -83,6 +90,11 @@ describe('SSL certificates renewal', () => {
 
     after(() => {
       // delete newly created files
+      fs.rmSync(__dirname + '/../fixtures/data/core/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt');
+      fs.rmSync(__dirname + '/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt');
+      fs.rmSync(__dirname + '/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt');
+      fs.rmSync(__dirname + '/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt');
+      
     });
 
     it('must login with leader using the credentials found in the defined path', () => {

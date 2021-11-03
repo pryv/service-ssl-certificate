@@ -3,7 +3,6 @@ const fs = require('fs');
 const url = require('url');
 
 const { getLogger, getConfigUnsafe } = require('@pryv/boiler');
-
 const logger = getLogger('apiCalls');
 const config = getConfigUnsafe(true);
 
@@ -14,7 +13,7 @@ module.exports.login = async () => {
   const CREDENTIALS_PATH = config.get('leader:credentialsPath')
   
   if (fs.existsSync(CREDENTIALS_PATH)) {
-    password = fs.readFileSync(CREDENTIALS_PATH).toString().trim();
+    password = fs.readFileSync(CREDENTIALS_PATH, 'utf-8').toString().trim();
   } else {
     throw new Error('Initial user password was not found!');
   }

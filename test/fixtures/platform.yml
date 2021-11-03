@@ -3,7 +3,7 @@ vars:
     name: "Machines and platform settings"
     settings:
       DOMAIN:
-        value: pryv.io
+        value: test-renew-ssl.pryv.io
         description: "Domain and name of the platform"
   DNS_SETTINGS:
     name: "DNS settings"
