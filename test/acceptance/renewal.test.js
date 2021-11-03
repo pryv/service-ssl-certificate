@@ -28,7 +28,7 @@ describe('SSL certificates renewal', () => {
   });
 
   describe.only('When certificate is valid for the 30 days or less', () => {
-    let loginRequestBody, isSettingsFetched, updateRequestBody;
+    let loginRequestBody, isSettingsFetched, updateRequestBody, firstNotifyBody;
     before(async () => {
       /**
        * - setup fake creds OK
@@ -63,6 +63,12 @@ describe('SSL certificates renewal', () => {
           return true;
         })
         .reply(200, {});
+      nock(leaderUrl)
+        .post('/admin/notify', (body) => {
+          firstNotifyBody = body;
+          return true;
+        })
+        .reply(200, { successes: [{ url: '', role: ''}]});
       // start renewal
       await renewCertificate();
     });
@@ -87,6 +93,11 @@ describe('SSL certificates renewal', () => {
       expectedUpdateBody.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'] = challenge;
       assert.deepEqual(updateRequestBody, expectedUpdateBody);
     });
+    it('must send order to reboot DNS services', () => {
+      assert.deepEqual(firstNotifyBody, {
+        services: ['pryvio_dns'],
+      });
+    })
   });
 
   describe('When the current certificate is valid for over 30 days', () => {

@@ -14,6 +14,7 @@ const {
   login,
   getSettings,
   updateSettings,
+  rebootServices,
 } = require('./apiCalls');
 
 async function renewCertificate () {
@@ -26,6 +27,7 @@ async function renewCertificate () {
     const settings = await getSettings(token);
     // TODO start thing
     await updateSettings(token, 'i am the challenge', settings);
+    await rebootServices(token, ['pryvio_dns']);
   } catch (e) {
     console.log('got err', e)
   }

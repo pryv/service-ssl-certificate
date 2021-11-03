@@ -53,17 +53,13 @@ module.exports.updateSettings = async (token, challenge, settings) => {
 /**
  * Notify admin about new certificate to restart followers that uses the
  * certificates
- * @param {*} servicesToRestart
+ * @param {*} servicesToRestart Array of strings
  */
-module.exports.notify = async (servicesToRestart) => {
-  try {
-    const token = await loginLeader(LEADER_URL);
-    logger.log('info', 'Notifying admin');
-    const res = await request.post(LEADER_URL + '/admin/notify')
-      .set('Authorization', token)
-      .send(servicesToRestart);
+module.exports.rebootServices = async (token, servicesToRestart) => {
+  const callUrl = url.resolve(LEADER_URL, '/admin/notify');
+  logger.info(`Rebooting services ${servicesToRestart} on leader at: ${callUrl}`)
+    const res = await request.post(callUrl)
+      .set('authorization', token)
+      .send({ services: servicesToRestart });
     return res.body;
-  } catch (err) {
-    logger.log('error', err);
-  }
 };
