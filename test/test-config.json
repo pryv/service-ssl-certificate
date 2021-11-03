@@ -5,16 +5,15 @@
   "dryRun": {
     "isActive": true
   },
-  "platformYmlPath": "test/mockups/platform.yml",
+  "platformYmlPath": "test/fixtures/platform.yml",
   "waitUntilFollowersReloadMs": 1,
   "letsencrypt": {
-    "liveDir": "test/mockups/letsencrypt",
+    "liveDir": "test/fixtures/letsencrypt",
     "cron": "0 1 * * *"
   },
   "leader": {
     "url": "http://pryvio_config_leader:7000",
-    "credentialsPath": "test/mockups/credentials.txt",
-    "configPath": "test/mockups/config-leader.json",
-    "templatesPath": "test/mockups/data"
+    "credentialsPath": "test/fixtures/credentials.txt",
+    "templatesPath": "test/fixtures/data"
   }
 }

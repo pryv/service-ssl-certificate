@@ -32,7 +32,7 @@ describe('operations', () => {
 
   describe('isTimeToRenewCertificate()', () => {
     it('must return true if the certificate has expired', async () => {
-      assert.isTrue(await isTimeToRenewCertificate('test/mockups/rec.la/old/rec.la-bundle.crt'));
+      assert.isTrue(await isTimeToRenewCertificate('test/fixtures/rec.la/old/rec.la-bundle.crt'));
     });
     it('must return true if it expires after less than 30 days', async () => {
       const cert = await genCertificate(15);
