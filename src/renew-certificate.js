@@ -28,6 +28,8 @@ async function renewCertificate () {
     // TODO start thing
     await updateSettings(token, 'i am the challenge', settings);
     await rebootServices(token, ['pryvio_dns']);
+
+    await rebootServices(token, ['pryvio_nginx']);
   } catch (e) {
     console.log('got err', e)
   }

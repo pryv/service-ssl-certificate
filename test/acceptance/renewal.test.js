@@ -28,7 +28,8 @@ describe('SSL certificates renewal', () => {
   });
 
   describe.only('When certificate is valid for the 30 days or less', () => {
-    let loginRequestBody, isSettingsFetched, updateRequestBody, firstNotifyBody;
+    let loginRequestBody, isSettingsFetched, updateRequestBody, firstNotifyBody,
+        secondNotifyBody;
     before(async () => {
       /**
        * - setup fake creds OK
@@ -69,7 +70,14 @@ describe('SSL certificates renewal', () => {
           return true;
         })
         .reply(200, { successes: [{ url: '', role: ''}]});
-      // start renewal
+      nock(leaderUrl)
+        .post('/admin/notify', (body) => {
+          secondNotifyBody = body;
+          return true;
+        })
+        .reply(200, { successes: [{ url: '', role: ''}]});
+      
+        // start renewal
       await renewCertificate();
     });
 
@@ -97,7 +105,12 @@ describe('SSL certificates renewal', () => {
       assert.deepEqual(firstNotifyBody, {
         services: ['pryvio_dns'],
       });
-    })
+    });
+    it('must send order to reboot NGINX services', () => {
+      assert.deepEqual(secondNotifyBody, {
+        services: ['pryvio_nginx'],
+      });
+    });
   });
 
   describe('When the current certificate is valid for over 30 days', () => {
