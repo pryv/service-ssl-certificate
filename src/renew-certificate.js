@@ -33,13 +33,11 @@ async function renewCertificate () {
     const csrPath = config.get('acme:csrPath');
     let CSR;
     if (csrPath != null && fs.existsSync(csrPath)) {
-      console.log('readin CSR', csrPath)
       CSR = fs.readFileSync(csrPath, 'utf-8').toString().trim(); // could be self genreated with acme.forge
     } else {
       // TODO generate CSR
     }
 
-    // start ACME
     const autoOpts = {
       csr: CSR,
       email: config.get('acme:email'),
