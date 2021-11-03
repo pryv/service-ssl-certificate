@@ -6,19 +6,14 @@ const { getLogger, getConfigUnsafe } = require('@pryv/boiler');
 const logger = getLogger('apiCalls');
 const config = getConfigUnsafe(true);
 
-const CREDENTIALS_PATH = config.get('leader:credentialsPath');
 const LEADER_URL = config.get('leader:url');
-
-exports.setDnsRecord = async (dnsRecord, url) => {
-  return await request.post(url).send(dnsRecord);
-};
 
 /**
  * Notify admin about new certificate to restart followers that uses the
  * certificates
  * @param {*} servicesToRestart
  */
-exports.notifyLeader = async (servicesToRestart) => {
+module.exports.notify = async (servicesToRestart) => {
   try {
     const token = await loginLeader(LEADER_URL);
     logger.log('info', 'Notifying admin');
@@ -31,9 +26,10 @@ exports.notifyLeader = async (servicesToRestart) => {
   }
 };
 
-async function loginLeader () {
+module.exports.login = async () => {
   const USERNAME = 'initial_user';
-  let password;
+  const CREDENTIALS_PATH = config.get('leader:credentialsPath')
+  console.log('lookin for creds in', CREDENTIALS_PATH)
   
   if (fs.existsSync(CREDENTIALS_PATH)) {
     password = fs.readFileSync(CREDENTIALS_PATH).toString().trim();
@@ -43,12 +39,13 @@ async function loginLeader () {
   return await requestToken(LEADER_URL, USERNAME, password);
 
   async function requestToken (LEADER_URL, USERNAME, password) {
-    logger.log('info', 'Requesting token from config-leader');
+    logger.log('info', 'Requesting token from config-leader: ' + LEADER_URL);
     const res = await request.post(LEADER_URL + '/auth/login')
       .send({
         username: USERNAME,
         password: password
       });
+    console.log('request to', LEADER_URL, 'response', res.body);
     return res.body.token;
   }
 }

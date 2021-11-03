@@ -21,8 +21,7 @@ describe('SSL certificates renewal', () => {
 
   before(async () => {
     config = await getConfig();
-    leaderUrl = config.get('abc');
-    console.log('got', config.get('leader:credentialsPath'))
+    leaderUrl = config.get('leader:url');
     credentials = fs.readFileSync(config.get('leader:credentialsPath'), 'utf-8');
   });
 
@@ -41,13 +40,15 @@ describe('SSL certificates renewal', () => {
        *
        */
       
-      nock(config.get('leader:url'))
+      nock(leaderUrl)
         .post('/auth/login',
           (body) => {
             leaderLoginRequest = body;
             return true;
           })
         .reply(200, { token: 'test-token' });
+      nock(leaderUrl)
+        .get('/admin/settings')
       // start renewal
       await renewCertificate();
     });
@@ -62,6 +63,9 @@ describe('SSL certificates renewal', () => {
         password: credentials,
       });
     });
+    it('must fetch settings from leader', () => {
+      asset.deepEqual()
+    })
   });
 
   describe('When the current certificate is valid for over 30 days', () => {

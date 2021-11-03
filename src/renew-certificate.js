@@ -10,13 +10,16 @@ const boiler = require('@pryv/boiler').init({
 
 const { getLogger, getConfig } = require('@pryv/boiler');
 
-(async () => {
-  await renewCertificate();
-})()
+const { 
+  login
+} = require('./apiCalls');
 
 async function renewCertificate () {
   const config = await getConfig();
   const logger = getLogger('renewCertificate');
-  logger.log('info', 'renewCertificate starting: ' + config.get('credentials:filepath'));
+  logger.log('info', 'renewCertificate starting');
+
+  const token = await login();
+
 }
 module.exports = renewCertificate;
