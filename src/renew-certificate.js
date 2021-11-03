@@ -60,13 +60,10 @@ async function renewCertificate () {
 
     const templateFolder = config.get('leader:templatesPath');
     const writeDestinations = generateWriteDestinations(templateFolder, domain);
-    writeDestinations.forEach(d => logger.info(`Going to write certificate to: ${d}`));
-    
     for (const d of writeDestinations) {
+      logger.info(`Writing certificate to: ${d}`)
       fs.writeFileSync(d, certificate);
     }
-
-    // TODO write certificate in folder
 
     await rebootServices(token, ['pryvio_nginx']);
   } catch (e) {

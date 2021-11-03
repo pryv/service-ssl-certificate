@@ -14,7 +14,6 @@ const { stub, createStubInstance } = require('sinon');
 const YAML = require('yaml');
 const acme = require('acme-client');
 
-const fixturesDir = 'test/fixtures/';
 const { getConfig } = require('@pryv/boiler');
 const renewCertificate = require('../../src/renew-certificate');
 const { challengeCreateFn } = require('../../src/acme');
