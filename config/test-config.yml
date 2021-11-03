@@ -1,5 +1,5 @@
 leader:
-  credentialsPath: "test/fixtures/credentials.txt"
+  credentialsPath: "test/fixtures/data/credentials.txt"
   url: "http://leader:8080"
   templatesPath: "test/fixtures/data/"
 acme:
