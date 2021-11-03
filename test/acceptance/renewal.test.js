@@ -30,18 +30,12 @@ describe('SSL certificates renewal', () => {
     stubCertificate = fs.readFileSync(__dirname + '/../fixtures/test-renew-ssl.pryv.io-bundle.crt', 'utf-8').toString();
   });
 
-  describe.only('When certificate is valid for the 30 days or less', () => {
+  describe('renew-certificate', () => {
+    
     let loginRequestBody, isSettingsFetched, updateRequestBody, firstNotifyBody,
         secondNotifyBody, acmeClientStub;
+
     before(async () => {
-      /**
-       * - fake acme thing
-       * - fake pre-hook callback
-       * - setup fake dig
-       * http://leader:8080/admin/settings
-       * http://leader:8080/admin/settings
-       *
-       */
       const token = 'token-for-leader';
       const challenge = 'i-am-the-dns-challenge'
 
@@ -94,7 +88,6 @@ describe('SSL certificates renewal', () => {
       fs.rmSync(__dirname + '/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt');
       fs.rmSync(__dirname + '/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt');
       fs.rmSync(__dirname + '/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt');
-      
     });
 
     it('must login with leader using the credentials found in the defined path', () => {
@@ -118,6 +111,16 @@ describe('SSL certificates renewal', () => {
         services: ['pryvio_dns'],
       });
     });
+    it('must write certificate to appropriate directories', () => {
+      const a = fs.readFileSync(__dirname + '/../fixtures/data/core/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8');
+      const b = fs.readFileSync(__dirname + '/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8');
+      const c = fs.readFileSync(__dirname + '/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8');
+      const d = fs.readFileSync(__dirname + '/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8');
+      assert.equal(a, stubCertificate);
+      assert.equal(b, stubCertificate);
+      assert.equal(c, stubCertificate);
+      assert.equal(d, stubCertificate);
+    });
     it('must send order to reboot NGINX services', () => {
       assert.deepEqual(secondNotifyBody, {
         services: ['pryvio_nginx'],
@@ -125,31 +128,4 @@ describe('SSL certificates renewal', () => {
     });
   });
 
-  describe('When the current certificate is valid for over 30 days', () => {
-    after(() => {
-      // delete newly created files
-      deleteBackup();
-      fs.rmdirSync(mockupDir + 'letsencrypt/');
-    });
-    it('Should not start the renewal process', async () => {
-      config.set('debug:isActive', false);
-      let otherCommandWasCalled = false;
-      // mock execSync
-      childProcess.execSync = function (command) {
-        if (isCommandToGetCertificateExpirationDate(command)) {
-          return 'date=' + generateFutureDate(32); // how many days certificate is valid
-        } else if (isCommandToGetNginxSecretsDir(command)) {
-          // mockup dir where nginx certificates exists
-          return mockupDir + 'nginx-directory-with-certs';
-        } else {
-          otherCommandWasCalled = true;
-          return '';
-        }
-      };
-      const { renewCertificate } = requireReload('../../src/renew-certificate');
-      // start renewal
-      renewCertificate();
-      assert.isFalse(otherCommandWasCalled, 'Should not call any other execSync command');
-    });
-  });
 });
