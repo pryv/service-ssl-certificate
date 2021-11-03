@@ -1,14 +1,16 @@
 vars:
   MACHINES_AND_PLATFORM_SETTINGS:
+    name: "Machines and platform settings"
     settings:
       DOMAIN:
-        value: pryv.li
+        value: pryv.io
+        description: "Domain and name of the platform"
   DNS_SETTINGS:
+    name: "DNS settings"
     settings:
       DNS_CUSTOM_ENTRIES:
-        value:
-          smth: abc
-  ADVANCED_API_SETTINGS:
-    settings:
-      LETSENCRYPT_EMAIL:
-        value: test@pryv.com
+        description: "Additional DNS entries. See the DNS configuration document: https://api.pryv.com/customer-resources/#documents.
+          Can be set to null if not used."
+        value: 
+          test:
+            ip: REPLACE_ME

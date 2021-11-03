@@ -11,7 +11,9 @@ const boiler = require('@pryv/boiler').init({
 const { getLogger, getConfig } = require('@pryv/boiler');
 
 const { 
-  login
+  login,
+  getSettings,
+  updateSettings,
 } = require('./apiCalls');
 
 async function renewCertificate () {
@@ -19,7 +21,14 @@ async function renewCertificate () {
   const logger = getLogger('renewCertificate');
   logger.log('info', 'renewCertificate starting');
 
-  const token = await login();
-
+  try {
+    const token = await login();
+    const settings = await getSettings(token);
+    // TODO start thing
+    await updateSettings(token, 'i am the challenge', settings);
+  } catch (e) {
+    console.log('got err', e)
+  }
+  
 }
 module.exports = renewCertificate;
