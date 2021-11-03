@@ -1,7 +1,6 @@
 name: SSL renewal tests
 
 on: push
-
 jobs:
   build:
 
