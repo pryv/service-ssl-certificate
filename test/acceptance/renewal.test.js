@@ -87,6 +87,10 @@ describe('SSL certificates renewal', () => {
       fs.rmSync(__dirname + '/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt');
       fs.rmSync(__dirname + '/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt');
       fs.rmSync(__dirname + '/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt');
+      fs.rmSync(__dirname + '/../fixtures/data/core/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem');
+      fs.rmSync(__dirname + '/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem');
+      fs.rmSync(__dirname + '/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem');
+      fs.rmSync(__dirname + '/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem');
     });
 
     it('must login with leader using the credentials found in the defined path', () => {
@@ -110,15 +114,27 @@ describe('SSL certificates renewal', () => {
         services: ['pryvio_dns'],
       });
     });
-    it('must write certificate to appropriate directories', () => {
-      const a = fs.readFileSync(__dirname + '/../fixtures/data/core/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8');
-      const b = fs.readFileSync(__dirname + '/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8');
-      const c = fs.readFileSync(__dirname + '/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8');
-      const d = fs.readFileSync(__dirname + '/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8');
-      assert.equal(a, stubCertificate);
-      assert.equal(b, stubCertificate);
-      assert.equal(c, stubCertificate);
-      assert.equal(d, stubCertificate);
+    it('must write certificates and keys to appropriate directories', () => {
+      assert.equal(
+        fs.readFileSync(__dirname + '/../fixtures/data/core/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8'),
+        stubCertificate
+      );
+      assert.exists(fs.readFileSync(__dirname + '/../fixtures/data/core/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem', 'utf-8'))
+      assert.equal(
+        fs.readFileSync(__dirname + '/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8'),
+        stubCertificate
+      );
+      assert.exists(fs.readFileSync(__dirname + '/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem', 'utf-8'))
+      assert.equal(
+        fs.readFileSync(__dirname + '/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8'),
+        stubCertificate
+      );
+      assert.exists(fs.readFileSync(__dirname + '/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem', 'utf-8'))
+      assert.equal(
+        fs.readFileSync(__dirname + '/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt', 'utf-8'),
+        stubCertificate
+      );
+      assert.exists(fs.readFileSync(__dirname + '/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem', 'utf-8'))
     });
     it('must send order to reboot NGINX services', () => {
       assert.deepEqual(secondNotifyBody, {

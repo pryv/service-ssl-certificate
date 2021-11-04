@@ -31,11 +31,14 @@ async function renewCertificate () {
     logger.info(`obtained domain: ${domain}`)
 
     const csrPath = config.get('acme:csrPath');
-    let CSR;
+    let CSR, key;
     if (csrPath != null && fs.existsSync(csrPath)) {
       CSR = fs.readFileSync(csrPath, 'utf-8').toString().trim(); // could be self genreated with acme.forge
     } else {
-      // TODO generate CSR
+      [key, CSR] = await acme.forge.createCsr({
+        keySize: 4096,
+        commonName: domain,
+      });
     }
 
     const autoOpts = {
@@ -57,10 +60,15 @@ async function renewCertificate () {
     logger.info(`Obtained certificate. Length: ${certificate.length}`);
 
     const templateFolder = config.get('leader:templatesPath');
-    const writeDestinations = generateWriteDestinations(templateFolder, domain);
-    for (const d of writeDestinations) {
-      logger.info(`Writing certificate to: ${d}`)
+    const writeCsrDestinations = generateWriteDestinations(templateFolder, domain, `${domain}-bundle.crt`);
+    for (const d of writeCsrDestinations) {
+      logger.info(`Writing certificate to: ${d}`);
       fs.writeFileSync(d, certificate);
+    }
+    const writeKeyDestinations = generateWriteDestinations(templateFolder, domain, `${domain}-key.pem`);
+    for (const d of writeKeyDestinations) {
+      logger.info(`Writing key to: ${d}`);
+      fs.writeFileSync(d, key);
     }
 
     await rebootServices(token, ['pryvio_nginx']);
@@ -70,14 +78,14 @@ async function renewCertificate () {
 }
 module.exports = renewCertificate;
 
-function generateWriteDestinations(basePath, domain) {
+function generateWriteDestinations(basePath, domain, filename) {
   // figure out if single node or cluster
   const roleFolders = fs.readdirSync(basePath, { withFileTypes: true }).filter(f => f.isDirectory());
 
   // build path for each
   const destinations = [];
   for (const roleFolder of roleFolders) {
-    destinations.push(path.join(basePath, roleFolder.name, `/nginx/conf/secret/${domain}-bundle.crt`));
+    destinations.push(path.join(basePath, roleFolder.name, `/nginx/conf/secret/${filename}`));
   }
   return destinations;
 }

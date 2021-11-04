@@ -4,5 +4,5 @@ leader:
   templatesPath: "/app/leader-data/"
 acme:
   isProduction: false
-  csrPath: "/app/conf/test-renew-ssl.pryv.io.csr"
+  #csrPath: "/app/conf/test-renew-ssl.pryv.io.csr"
   email: tech@pryv.com
