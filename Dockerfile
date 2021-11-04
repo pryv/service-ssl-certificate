@@ -1,15 +1,10 @@
-FROM node:14
+FROM node:16
 MAINTAINER "Tech@Pryv" <tech@pryv.com>
 
-COPY . /app/
-WORKDIR /app
+COPY . /app/bin/
+WORKDIR /app/bin
 
-RUN apt-get update -y \
-    && apt-get install -y certbot dnsutils \
-    && npm install
-
-# Make certificate renewal hook executable
-RUN chmod +x /app/bin/setDnsChallenge.js
+RUN yarn install
 
 # Run the command on container startup
-CMD node /app/bin/main.js
+CMD NODE_ENV=production node /app/bin/src/renew-certificate.js --config /app/conf/ssl-certificate.yml
