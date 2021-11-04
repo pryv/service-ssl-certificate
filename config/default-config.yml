@@ -6,3 +6,14 @@ acme:
   isProduction: false
   #csrPath: "/app/conf/test-renew-ssl.pryv.io.csr"
   email: tech@pryv.com
+logs:
+  console:
+    active: true
+    level: "info"
+  file:
+    active: false
+    path: "/app/log/ssl-certificate.log"
+    level: info
+    rotation:
+      isActive: false
+      days: 14
