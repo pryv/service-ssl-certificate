@@ -13,19 +13,22 @@ const assert = require('chai').assert;
 const { stub, createStubInstance } = require('sinon');
 const YAML = require('yaml');
 const acme = require('acme-client');
+const dns = require('dns-dig');
 
 const { getConfig } = require('@pryv/boiler');
 const renewCertificate = require('../../src/renew-certificate');
 const { challengeCreateFn } = require('../../src/acme');
 
 describe('SSL certificates renewal', () => {
-  let config, leaderUrl, credentials, platformSettings, stubCertificate;
+  let config, leaderUrl, credentials, platformSettings, 
+      domain, stubCertificate;
 
   before(async () => {
     config = await getConfig();
     leaderUrl = config.get('leader:url');
     credentials = fs.readFileSync(config.get('leader:credentialsPath'), 'utf-8');
     platformSettings = YAML.parse(fs.readFileSync(__dirname + '/../fixtures/platform.yml', 'utf-8'));
+    domain = platformSettings.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
     stubCertificate = fs.readFileSync(__dirname + '/../fixtures/test-renew-ssl.pryv.io-bundle.crt', 'utf-8').toString();
   });
 
@@ -40,10 +43,14 @@ describe('SSL certificates renewal', () => {
 
       acmeClientStub = stub(acme, "Client").returns({
         auto: async () => {
-          await challengeCreateFn(token, platformSettings.vars, null, null, challenge);
+          await challengeCreateFn(domain, token, platformSettings.vars, null, null, challenge);
           return stubCertificate;
         },
       });
+      digResolveStub = stub(dns, "resolveTxt").withArgs('_acme-challenge.' + domain);
+      digResolveStub.onFirstCall().returns([]);
+      digResolveStub.onSecondCall().returns([]);
+      digResolveStub.onThirdCall().returns([challenge])
 
       nock(leaderUrl)
         .post('/auth/login',
@@ -113,6 +120,9 @@ describe('SSL certificates renewal', () => {
       assert.deepEqual(firstNotifyBody, {
         services: ['pryvio_dns'],
       });
+    });
+    it('must check that the DNS challenge is set', () => {
+
     });
     it('must write certificates and keys to appropriate directories', () => {
       assert.equal(

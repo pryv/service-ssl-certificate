@@ -13,7 +13,6 @@ const { getLogger, getConfig } = require('@pryv/boiler');
 const { 
   login,
   getSettings,
-  updateSettings,
   rebootServices,
 } = require('./apiCalls');
 const { challengeCreateFn } = require('./acme');
@@ -46,7 +45,7 @@ async function renewCertificate () {
       email: config.get('acme:email'),
       termsOfServiceAgreed: true,
       challengePriority: ['dns-01'],
-      challengeCreateFn: challengeCreateFn.bind(null, token, settings),
+      challengeCreateFn: challengeCreateFn.bind(null, domain, token, settings),
       challengeRemoveFn: () => {},
     };
     const isProduction = config.get('acme:isProduction');

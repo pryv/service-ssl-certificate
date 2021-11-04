@@ -9,6 +9,7 @@
   "dependencies": {
     "@pryv/boiler": "https://github.com/pryv/lib-node-boiler.git#1.0.4",
     "acme-client": "^4.1.3",
+    "dns-dig": "^1.1.2",
     "superagent": "^6.1.0"
   },
   "devDependencies": {

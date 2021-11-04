@@ -39,10 +39,10 @@ module.exports.getSettings = async (token) => {
   return res.body.settings;
 }
 
-module.exports.updateSettings = async (token, challenge, settings) => {
+module.exports.updateDnsTxtRecord = async (token, challenge, settings) => {
   const callUrl = url.resolve(LEADER_URL, '/admin/settings');
   logger.info(`Updating settings to leader at ${callUrl}, setting challenge: ${challenge}`);
-  settings.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'] = challenge
+  settings.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'] = { description: challenge };
   const res = await request.put(callUrl)
     .set('authorization', token)
     .send(settings);
