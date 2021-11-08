@@ -3,6 +3,7 @@ const fs = require('fs');
 const url = require('url');
 
 const { getLogger, getConfigUnsafe } = require('@pryv/boiler');
+
 const logger = getLogger('apiCalls');
 const config = getConfigUnsafe(true);
 
@@ -10,34 +11,35 @@ const LEADER_URL = config.get('leader:url');
 
 module.exports.login = async () => {
   const USERNAME = 'initial_user';
-  const CREDENTIALS_PATH = config.get('leader:credentialsPath')
-  
+  const CREDENTIALS_PATH = config.get('leader:credentialsPath');
+
+  let password;
   if (fs.existsSync(CREDENTIALS_PATH)) {
     password = fs.readFileSync(CREDENTIALS_PATH, 'utf-8').toString().trim();
   } else {
     throw new Error('Initial user password was not found!');
   }
-  return await requestToken(LEADER_URL, USERNAME, password);
+  return requestToken(LEADER_URL, USERNAME, password);
 
-  async function requestToken (LEADER_URL, USERNAME, password) {
-    const callUrl = url.resolve(LEADER_URL, '/auth/login')
-    logger.log('info', 'Requesting token from config-leader at: ' + callUrl);
+  async function requestToken(LEADER_URL, USERNAME, password) {
+    const callUrl = url.resolve(LEADER_URL, '/auth/login');
+    logger.log('info', `Requesting token from config-leader at: ${callUrl}`);
     const res = await request.post(callUrl)
       .send({
         username: USERNAME,
-        password: password
+        password,
       });
     return res.body.token;
   }
-}
+};
 
 module.exports.getSettings = async (token) => {
   const callUrl = url.resolve(LEADER_URL, '/admin/settings');
-  logger.info(`fetching settings from leader at ${callUrl}`)
+  logger.info(`fetching settings from leader at ${callUrl}`);
   const res = await request.get(callUrl)
     .set('authorization', token);
   return res.body.settings;
-}
+};
 
 module.exports.updateDnsTxtRecord = async (token, challenge, settings) => {
   const callUrl = url.resolve(LEADER_URL, '/admin/settings');
@@ -47,7 +49,7 @@ module.exports.updateDnsTxtRecord = async (token, challenge, settings) => {
     .set('authorization', token)
     .send(settings);
   return res.body;
-}
+};
 
 /**
  * Notify admin about new certificate to restart followers that uses the
@@ -56,9 +58,9 @@ module.exports.updateDnsTxtRecord = async (token, challenge, settings) => {
  */
 module.exports.rebootServices = async (token, servicesToRestart) => {
   const callUrl = url.resolve(LEADER_URL, '/admin/notify');
-  logger.info(`Rebooting services ${servicesToRestart} on leader at: ${callUrl}`)
-    const res = await request.post(callUrl)
-      .set('authorization', token)
-      .send({ services: servicesToRestart });
-    return res.body;
+  logger.info(`Rebooting services ${servicesToRestart} on leader at: ${callUrl}`);
+  const res = await request.post(callUrl)
+    .set('authorization', token)
+    .send({ services: servicesToRestart });
+  return res.body;
 };

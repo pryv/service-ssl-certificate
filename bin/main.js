@@ -1,4 +1,3 @@
-
 const renewCertificate = require('../src/renew-certificate');
 
 (async () => {
