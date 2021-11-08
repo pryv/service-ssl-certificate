@@ -6,6 +6,7 @@ acme:
   isProduction: false
   #csrPath: "/app/conf/test-renew-ssl.pryv.io.csr"
   email: tech@pryv.com
+  dnsWaitTime: 1000
 logs:
   console:
     active: true
