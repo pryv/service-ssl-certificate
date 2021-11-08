@@ -15,4 +15,5 @@ WORKDIR /app/bin
 RUN yarn install --frozen-lockfile # equivalent to "npm ci"
 
 # Run the command on container startup
+USER node # least-privilege user
 CMD NODE_ENV=production node /app/bin/bin/main.js --config /app/conf/ssl-certificate.yml
