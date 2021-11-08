@@ -34,12 +34,12 @@ describe('SSL certificates renewal', () => {
 
   describe('renew-certificate', () => {
     
-    let loginRequestBody, isSettingsFetched, updateRequestBody, firstNotifyBody,
-        secondNotifyBody, acmeClientStub;
+    let loginRequestBody, isDomainFetched, updateRequestBody, rebootDnsBody,
+        rebootNginxBody, acmeClientStub, digResolveStub, challenge;
 
     before(async () => {
       const token = 'token-for-leader';
-      const challenge = 'i-am-the-dns-challenge'
+      challenge = 'i-am-the-dns-challenge'
 
       acmeClientStub = stub(acme, "Client").returns({
         auto: async () => {
@@ -61,7 +61,7 @@ describe('SSL certificates renewal', () => {
         .reply(200, { token });
       nock(leaderUrl)
         .get('/admin/settings', () => {
-          isSettingsFetched = true;
+          isDomainFetched = true;
           return true;
         })
         .reply(200, { settings: platformSettings.vars });
@@ -73,13 +73,13 @@ describe('SSL certificates renewal', () => {
         .reply(200, {});
       nock(leaderUrl)
         .post('/admin/notify', (body) => {
-          firstNotifyBody = body;
+          rebootDnsBody = body;
           return true;
         })
         .reply(200, { successes: [{ url: '', role: ''}]});
       nock(leaderUrl)
         .post('/admin/notify', (body) => {
-          secondNotifyBody = body;
+          rebootNginxBody = body;
           return true;
         })
         .reply(200, { successes: [{ url: '', role: ''}]});
@@ -106,23 +106,31 @@ describe('SSL certificates renewal', () => {
         password: credentials,
       });
     });
-    it('must fetch settings from leader', () => {
-      assert.isTrue(isSettingsFetched);
+    it('must fetch domain in settings from leader', () => {
+      assert.isTrue(isDomainFetched);
+    });
+    it('must start the ACME procotol', () => {
+      assert.equal(acmeClientStub.callCount, 1);
     });
     it('must send DNS challenge to leader', () => {
       assert.exists(updateRequestBody);
-      const challenge = updateRequestBody.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'];
       const expectedUpdateBody = _.cloneDeep(platformSettings).vars;
-      expectedUpdateBody.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'] = challenge;
+      expectedUpdateBody.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'] = { description: challenge };
       assert.deepEqual(updateRequestBody, expectedUpdateBody);
     });
     it('must send order to reboot DNS services', () => {
-      assert.deepEqual(firstNotifyBody, {
+      assert.deepEqual(rebootDnsBody, {
         services: ['pryvio_dns'],
       });
     });
-    it('must check that the DNS challenge is set', () => {
-
+    it('must verify that the DNS challenge is set', () => {
+      assert.equal(digResolveStub.callCount, 3);
+      for (let i=0; i<3; i++) {
+        const call = digResolveStub.getCall(i);
+        assert.deepEqual(call.args, [`_acme-challenge.${domain}`]);
+        if (i === 0 || i === 1) assert.deepEqual(call.returnValue, []);
+        if (i === 2) assert.deepEqual(call.returnValue, [challenge]);
+      }
     });
     it('must write certificates and keys to appropriate directories', () => {
       assert.equal(
@@ -147,7 +155,7 @@ describe('SSL certificates renewal', () => {
       assert.exists(fs.readFileSync(__dirname + '/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem', 'utf-8'))
     });
     it('must send order to reboot NGINX services', () => {
-      assert.deepEqual(secondNotifyBody, {
+      assert.deepEqual(rebootNginxBody, {
         services: ['pryvio_nginx'],
       });
     });
