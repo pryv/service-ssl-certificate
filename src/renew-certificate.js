@@ -59,7 +59,7 @@ async function renewCertificate() {
     });
     const certificate = await client.auto(autoOpts);
     logger.info(`Obtained certificate. Length: ${certificate.length}`);
-
+    
     const templateFolder = config.get('leader:templatesPath');
     const secretsFolders = generateSecretsFolder(templateFolder);
     for (const dir of secretsFolders) {
@@ -72,6 +72,7 @@ async function renewCertificate() {
     await rebootServices(token, ['pryvio_nginx']);
   } catch (e) {
     logger.error(`Error while renewing certificate: ${e}`);
+    logger.error(e.stack);
   }
 
   function generateSecretsFolder(basePath) {
