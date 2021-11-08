@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const acme = require('acme-client');
+const mkdirp = require('mkdirp');
 
 require('@pryv/boiler').init({
   appName: 'service-ssl-certificate',
@@ -60,32 +61,44 @@ async function renewCertificate() {
     logger.info(`Obtained certificate. Length: ${certificate.length}`);
 
     const templateFolder = config.get('leader:templatesPath');
-    const writeCsrDestinations = generateWriteDestinations(templateFolder, domain, `${domain}-bundle.crt`);
-    for (const d of writeCsrDestinations) {
-      logger.info(`Writing certificate to: ${d}`);
-      fs.writeFileSync(d, certificate);
-    }
-    const writeKeyDestinations = generateWriteDestinations(templateFolder, domain, `${domain}-key.pem`);
-    for (const d of writeKeyDestinations) {
-      logger.info(`Writing key to: ${d}`);
-      fs.writeFileSync(d, key);
+    const secretsFolders = generateSecretsFolder(templateFolder);
+    for (const dir of secretsFolders) {
+      await backupFilesInSecret(dir);
+      logger.info(`Writing certificate and key to: ${dir}`);
+      fs.writeFileSync(path.join(dir, `${domain}-bundle.crt`), certificate);
+      fs.writeFileSync(path.join(dir, `${domain}-key.pem`), key);
     }
 
     await rebootServices(token, ['pryvio_nginx']);
   } catch (e) {
     logger.error(`Error while renewing certificate: ${e}`);
   }
+
+  function generateSecretsFolder(basePath) {
+    // figure out if single node or cluster
+    const roleFolders = fs.readdirSync(basePath, { withFileTypes: true }).filter((f) => f.isDirectory());
+  
+    // build path for each
+    const secretsFolders = [];
+    for (const roleFolder of roleFolders) {
+      secretsFolders.push(path.join(basePath, roleFolder.name, '/nginx/conf/secret'));
+    }
+    return secretsFolders;
+  }
+  
+  async function backupFilesInSecret(basePath) {
+    const filesToBackup = fs.readdirSync(basePath, { withFileTypes: true }).filter((f) => f.isFile()).map(dirent => dirent.name);
+    const backupFolder = path.join(basePath, 'backup', new Date().toISOString());
+    logger.info(`Backing up files of ${basePath} into ${backupFolder}`);
+    await mkdirp(backupFolder);
+    for (const filename of filesToBackup) {
+      const src = path.join(basePath, filename);
+      const dest = path.join(backupFolder, filename);
+      logger.debug(`Copying file ${src} to ${dest}`);
+      fs.copyFileSync(src, dest);
+    }
+  }
 }
 module.exports = renewCertificate;
 
-function generateWriteDestinations(basePath, domain, filename) {
-  // figure out if single node or cluster
-  const roleFolders = fs.readdirSync(basePath, { withFileTypes: true }).filter((f) => f.isDirectory());
 
-  // build path for each
-  const destinations = [];
-  for (const roleFolder of roleFolders) {
-    destinations.push(path.join(basePath, roleFolder.name, `/nginx/conf/secret/${filename}`));
-  }
-  return destinations;
-}

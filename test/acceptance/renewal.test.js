@@ -7,6 +7,7 @@
 
 /* global it, before, describe, after */
 const fs = require('fs');
+const path = require('path');
 
 const _ = require('lodash');
 const nock = require('nock');
@@ -21,9 +22,12 @@ const renewCertificate = require('../../src/renew-certificate');
 const { challengeCreateFn } = require('../../src/acme');
 
 describe('SSL certificates renewal', () => {
-  let config; let leaderUrl; let credentials; let platformSettings;
-  let domain; let
-      stubCertificate;
+  let config; 
+  let leaderUrl; 
+  let credentials; 
+  let platformSettings;
+  let domain; 
+  let stubCertificate;
 
   before(async () => {
     config = await getConfig();
@@ -91,15 +95,15 @@ describe('SSL certificates renewal', () => {
     });
 
     after(() => {
-      // delete newly created files
-      fs.rmSync(`${__dirname}/../fixtures/data/core/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt`);
-      fs.rmSync(`${__dirname}/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt`);
-      fs.rmSync(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt`);
-      fs.rmSync(`${__dirname}/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt`);
-      fs.rmSync(`${__dirname}/../fixtures/data/core/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem`);
-      fs.rmSync(`${__dirname}/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem`);
-      fs.rmSync(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem`);
-      fs.rmSync(`${__dirname}/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem`);
+      removeCreatedFilesInDir(`${__dirname}/../fixtures/data/core/nginx/conf/secret/`);
+      removeCreatedFilesInDir(`${__dirname}/../fixtures/data/reg-master/nginx/conf/secret`);
+      removeCreatedFilesInDir(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret`);
+      removeCreatedFilesInDir(`${__dirname}/../fixtures/data/static/nginx/conf/secret`);
+      function removeCreatedFilesInDir(dir) {
+        fs.rmSync(path.join(dir, 'test-renew-ssl.pryv.io-bundle.crt'));
+        fs.rmSync(path.join(dir, 'test-renew-ssl.pryv.io-key.pem'));
+        fs.rmSync(path.join(dir, 'backup'), { recursive: true });
+      }
     });
 
     it('must login with leader using the credentials found in the defined path', () => {
@@ -134,27 +138,42 @@ describe('SSL certificates renewal', () => {
         if (i === 2) assert.deepEqual(call.returnValue, [challenge]);
       }
     });
+    it('must backup old certificates', () => {
+      assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/core/nginx/conf/secret`);
+      assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/reg-master/nginx/conf/secret`);
+      assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret`);
+      assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/static/nginx/conf/secret`);
+      
+      function assertFilesAreBackedUpInDir(dir) {
+        const backupDir = path.join(dir, 'backup');
+        assert.isTrue(fs.existsSync(backupDir));
+        // retrieve timestamp
+        const dirs = fs.readdirSync(backupDir);
+        assert.isNotEmpty(dirs);
+        // folder with timestamp
+        const thisBackupDir = path.join(backupDir, dirs[0]);
+        const certificates = fs.readdirSync(thisBackupDir, { withFileTypes: true }).filter(f => f.isFile()).map(dirent => dirent.name);
+        assert.isNotEmpty(certificates);
+        // here we can compare with files that are in the folder above because the new one that is written has a different name.
+        for(const certFile of certificates) {
+          const originalFile = path.join(dir, certFile);
+          const backupFile = path.join(thisBackupDir, certFile);
+          assert.deepEqual(
+            fs.readFileSync(originalFile, 'utf-8'),
+            fs.readFileSync(backupFile, 'utf-8'),
+          );
+        }
+      }
+    });
     it('must write certificates and keys to appropriate directories', () => {
-      assert.equal(
-        fs.readFileSync(`${__dirname}/../fixtures/data/core/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt`, 'utf-8'),
-        stubCertificate,
-      );
-      assert.exists(fs.readFileSync(`${__dirname}/../fixtures/data/core/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem`, 'utf-8'));
-      assert.equal(
-        fs.readFileSync(`${__dirname}/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt`, 'utf-8'),
-        stubCertificate,
-      );
-      assert.exists(fs.readFileSync(`${__dirname}/../fixtures/data/reg-master/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem`, 'utf-8'));
-      assert.equal(
-        fs.readFileSync(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt`, 'utf-8'),
-        stubCertificate,
-      );
-      assert.exists(fs.readFileSync(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem`, 'utf-8'));
-      assert.equal(
-        fs.readFileSync(`${__dirname}/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-bundle.crt`, 'utf-8'),
-        stubCertificate,
-      );
-      assert.exists(fs.readFileSync(`${__dirname}/../fixtures/data/static/nginx/conf/secret/test-renew-ssl.pryv.io-key.pem`, 'utf-8'));
+      assertCertificatesAreWrittenInDir(`${__dirname}/../fixtures/data/core/nginx/conf/secret`);
+      assertCertificatesAreWrittenInDir(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret`);
+      assertCertificatesAreWrittenInDir(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret`);
+      assertCertificatesAreWrittenInDir(`${__dirname}/../fixtures/data/static/nginx/conf/secret`);
+      function assertCertificatesAreWrittenInDir(dir) {
+        assert.equal(fs.readFileSync(path.join(dir, 'test-renew-ssl.pryv.io-bundle.crt'), 'utf-8'), stubCertificate);
+        assert.exists(fs.readFileSync(path.join(dir, 'test-renew-ssl.pryv.io-key.pem'), 'utf-8'));
+      }
     });
     it('must send order to reboot NGINX services', () => {
       assert.deepEqual(rebootNginxBody, {
