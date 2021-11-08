@@ -140,16 +140,15 @@ describe('SSL certificates renewal', () => {
       let firstCalled = 0;
       let secondCalled = 0;
       for (let i = 0; i < 5; i++) {
-        const call = digResolveStub.getCall(i);
-        const { args } = call;
+        const { args, returnValue } = digResolveStub.getCall(i);
         assert.deepEqual(args[0], `_acme-challenge.${domain}`);
         if (args[1].host === nameServerHostnames[0]) {
-          if (firstCalled === 0 || firstCalled === 1) assert.deepEqual(call.returnValue, []);
-          if (firstCalled === 2) assert.deepEqual(call.returnValue, [challenge]);
+          if (firstCalled === 0 || firstCalled === 1) assert.deepEqual(returnValue, []);
+          if (firstCalled === 2) assert.deepEqual(returnValue, [challenge]);
           firstCalled++;
         } else if (args[1].host === nameServerHostnames[1]) {
-          if (secondCalled === 0) assert.deepEqual(call.returnValue, []);
-          if (secondCalled === 1) assert.deepEqual(call.returnValue, [challenge]);
+          if (secondCalled === 0) assert.deepEqual(returnValue, []);
+          if (secondCalled === 1) assert.deepEqual(returnValue, [challenge]);
           secondCalled++;
         }
       }
