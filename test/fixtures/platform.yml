@@ -14,3 +14,15 @@ vars:
         value: 
           test:
             ip: REPLACE_ME
+      NAME_SERVER_ENTRIES:
+        description: |-
+          Name server entries for your Pryv.io platform domain.  
+          You should set the `name` values to the hostnames provided as name servers in the domain setup phase(https://api.pryv.com/customer-resources/pryv.io-setup/#obtain-a-domain-name).  
+          The IP addresses should point to the machine(s) running your Pryv.io DNS, they should be the same when running a single DNS.
+        value:
+          - 
+            name: dns1.DOMAIN
+            ip: REG_MASTER_IP_ADDRESS
+          - 
+            name: my-other-hostname.com
+            ip: REG_SLAVE_IP_ADDRESS

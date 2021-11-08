@@ -28,6 +28,7 @@ describe('SSL certificates renewal', () => {
   let platformSettings;
   let domain;
   let stubCertificate;
+  let nameServerHostnames;
 
   before(async () => {
     config = await getConfig();
@@ -36,12 +37,14 @@ describe('SSL certificates renewal', () => {
     platformSettings = YAML.parse(fs.readFileSync(`${__dirname}/../fixtures/platform.yml`, 'utf-8'));
     domain = platformSettings.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
     stubCertificate = fs.readFileSync(`${__dirname}/../fixtures/test-renew-ssl.pryv.io-bundle.crt`, 'utf-8').toString();
+    nameServerHostnames = platformSettings.vars.DNS_SETTINGS.settings.NAME_SERVER_ENTRIES.value;
+    nameServerHostnames = platformSettings.vars.DNS_SETTINGS.settings.NAME_SERVER_ENTRIES.value.map((hostname) => hostname.name.replace('DOMAIN', domain));
   });
 
   describe('renew-certificate', () => {
     let loginRequestBody; let isDomainFetched; let updateRequestBody; let rebootDnsBody;
-    let rebootNginxBody; let acmeClientStub; let digResolveStub; let
-        challenge;
+    let rebootNginxBody; let acmeClientStub; let digResolveStub;
+    let challenge;
 
     before(async () => {
       const token = 'token-for-leader';
@@ -49,14 +52,16 @@ describe('SSL certificates renewal', () => {
 
       acmeClientStub = stub(acme, 'Client').returns({
         auto: async () => {
-          await challengeCreateFn(domain, token, platformSettings.vars, null, null, challenge);
+          await challengeCreateFn(domain, token, platformSettings.vars, nameServerHostnames, null, null, challenge);
           return stubCertificate;
         },
       });
-      digResolveStub = stub(dns, 'resolveTxt').withArgs(`_acme-challenge.${domain}`);
-      digResolveStub.onFirstCall().returns([]);
-      digResolveStub.onSecondCall().returns([]);
-      digResolveStub.onThirdCall().returns([challenge]);
+      digResolveStub = stub(dns, 'resolveTxt');
+      digResolveStub.withArgs(`_acme-challenge.${domain}`, { host: nameServerHostnames[0] }).onFirstCall().returns([]);
+      digResolveStub.withArgs(`_acme-challenge.${domain}`, { host: nameServerHostnames[0] }).onSecondCall().returns([]);
+      digResolveStub.withArgs(`_acme-challenge.${domain}`, { host: nameServerHostnames[0] }).onThirdCall().returns([challenge]);
+      digResolveStub.withArgs(`_acme-challenge.${domain}`, { host: nameServerHostnames[1] }).onFirstCall().returns([]);
+      digResolveStub.withArgs(`_acme-challenge.${domain}`, { host: nameServerHostnames[1] }).onSecondCall().returns([challenge]);
 
       nock(leaderUrl)
         .post('/auth/login',
@@ -130,13 +135,26 @@ describe('SSL certificates renewal', () => {
       });
     });
     it('must verify that the DNS challenge is set', () => {
-      assert.equal(digResolveStub.callCount, 3);
-      for (let i = 0; i < 3; i++) {
+      assert.equal(digResolveStub.callCount, 5);
+
+      let firstCalled = 0;
+      let secondCalled = 0;
+      for (let i = 0; i < 5; i++) {
         const call = digResolveStub.getCall(i);
-        assert.deepEqual(call.args, [`_acme-challenge.${domain}`]);
-        if (i === 0 || i === 1) assert.deepEqual(call.returnValue, []);
-        if (i === 2) assert.deepEqual(call.returnValue, [challenge]);
+        const { args } = call;
+        assert.deepEqual(args[0], `_acme-challenge.${domain}`);
+        if (args[1].host === nameServerHostnames[0]) {
+          if (firstCalled === 0 || firstCalled === 1) assert.deepEqual(call.returnValue, []);
+          if (firstCalled === 2) assert.deepEqual(call.returnValue, [challenge]);
+          firstCalled++;
+        } else if (args[1].host === nameServerHostnames[1]) {
+          if (secondCalled === 0) assert.deepEqual(call.returnValue, []);
+          if (secondCalled === 1) assert.deepEqual(call.returnValue, [challenge]);
+          secondCalled++;
+        }
       }
+      assert.equal(firstCalled, 3);
+      assert.equal(secondCalled, 2);
     });
     it('must backup old certificates', () => {
       assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/core/nginx/conf/secret`);

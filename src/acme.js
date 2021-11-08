@@ -8,7 +8,7 @@ const {
 /**
  * This function is declared separately, because it is referenced in the tests
  */
-module.exports.challengeCreateFn = async function (domain, token, settings, authz, challenge, keyAuthorization) {
+module.exports.challengeCreateFn = async function (domain, token, settings, nameServerHostnames, authz, challenge, keyAuthorization) {
   const logger = getLogger('acme');
   const config = await getConfig();
   const dnsWaitTime = config.get('acme:dnsWaitTime');
@@ -17,13 +17,17 @@ module.exports.challengeCreateFn = async function (domain, token, settings, auth
 
   const txtRecordHostname = `_acme-challenge.${domain}`;
 
-  let isTxtRecordSet = false;
-  while (! isTxtRecordSet) {
-    logger.info(`Checking DNS challenge ${txtRecordHostname}`);
-    const txtRecords = await dns.resolveTxt(txtRecordHostname);
-    logger.info(`Obtained ${txtRecords}`);
-    if (txtRecords.length > 0 && txtRecords[0] === keyAuthorization) isTxtRecordSet = true;
-    await sleep(dnsWaitTime);
+  const areTxtRecordsSet = {};
+  nameServerHostnames.forEach((h) => areTxtRecordsSet[h] = false);
+
+  for (const hostname of nameServerHostnames) {
+    while (! areTxtRecordsSet[hostname]) {
+      logger.info(`Checking DNS challenge ${txtRecordHostname} by ${hostname}`);
+      const txtRecords = await dns.resolveTxt(txtRecordHostname, { host: hostname });
+      logger.info(`Obtained ${txtRecords}`);
+      if (txtRecords.length > 0 && txtRecords[0] === keyAuthorization) areTxtRecordsSet[hostname] = true;
+      await sleep(dnsWaitTime);
+    }
   }
 };
 

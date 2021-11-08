@@ -4,6 +4,8 @@ const path = require('path');
 const acme = require('acme-client');
 const mkdirp = require('mkdirp');
 
+const DOMAIN_PLACEHOLDER = 'DOMAIN';
+
 require('@pryv/boiler').init({
   appName: 'service-ssl-certificate',
   baseConfigDir: path.resolve(__dirname, '../config/'),
@@ -28,7 +30,11 @@ async function renewCertificate() {
     const settings = await getSettings(token);
 
     const domain = settings.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
-    logger.info(`obtained domain: ${domain}`);
+    const nameServerHostnames = settings.DNS_SETTINGS.settings.NAME_SERVER_ENTRIES.value.map((h) => h.name);
+    logger.info(`Obtained domain: ${domain}`);
+    logger.info(`Obtained name server hostnames: ${nameServerHostnames}`);
+    const processNameServerHostnames = nameServerHostnames.map((hostname) => hostname.replace(DOMAIN_PLACEHOLDER, domain));
+    logger.info(`Processed name server hostnames: ${processNameServerHostnames}`);
 
     const csrPath = config.get('acme:csrPath');
     let CSR; let
@@ -47,7 +53,7 @@ async function renewCertificate() {
       email: config.get('acme:email'),
       termsOfServiceAgreed: true,
       challengePriority: ['dns-01'],
-      challengeCreateFn: challengeCreateFn.bind(null, domain, token, settings),
+      challengeCreateFn: challengeCreateFn.bind(null, domain, token, settings, processNameServerHostnames),
       challengeRemoveFn: () => {},
     };
     const isProduction = config.get('acme:isProduction');
@@ -59,7 +65,7 @@ async function renewCertificate() {
     });
     const certificate = await client.auto(autoOpts);
     logger.info(`Obtained certificate. Length: ${certificate.length}`);
-    
+
     const templateFolder = config.get('leader:templatesPath');
     const secretsFolders = generateSecretsFolder(templateFolder);
     for (const dir of secretsFolders) {
