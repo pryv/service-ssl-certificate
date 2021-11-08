@@ -14,5 +14,10 @@ WORKDIR /app/bin
 
 RUN yarn install --frozen-lockfile # equivalent to "npm ci"
 
+# install dig
+RUN apt update
+RUN apt install dnsutils --yes
+RUN dig -v
+
 # Run the command on container startup
 CMD NODE_ENV=production node /app/bin/bin/main.js --config /app/conf/ssl-certificate.yml
