@@ -77,7 +77,7 @@ async function renewCertificate() {
   function generateSecretsFolder(basePath) {
     // figure out if single node or cluster
     const roleFolders = fs.readdirSync(basePath, { withFileTypes: true }).filter((f) => f.isDirectory());
-  
+
     // build path for each
     const secretsFolders = [];
     for (const roleFolder of roleFolders) {
@@ -85,9 +85,9 @@ async function renewCertificate() {
     }
     return secretsFolders;
   }
-  
+
   async function backupFilesInSecret(basePath) {
-    const filesToBackup = fs.readdirSync(basePath, { withFileTypes: true }).filter((f) => f.isFile()).map(dirent => dirent.name);
+    const filesToBackup = fs.readdirSync(basePath, { withFileTypes: true }).filter((f) => f.isFile()).map((dirent) => dirent.name);
     const backupFolder = path.join(basePath, 'backup', new Date().toISOString());
     logger.info(`Backing up files of ${basePath} into ${backupFolder}`);
     await mkdirp(backupFolder);
@@ -100,5 +100,3 @@ async function renewCertificate() {
   }
 }
 module.exports = renewCertificate;
-
-

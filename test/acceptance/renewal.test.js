@@ -22,11 +22,11 @@ const renewCertificate = require('../../src/renew-certificate');
 const { challengeCreateFn } = require('../../src/acme');
 
 describe('SSL certificates renewal', () => {
-  let config; 
-  let leaderUrl; 
-  let credentials; 
+  let config;
+  let leaderUrl;
+  let credentials;
   let platformSettings;
-  let domain; 
+  let domain;
   let stubCertificate;
 
   before(async () => {
@@ -143,7 +143,7 @@ describe('SSL certificates renewal', () => {
       assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/reg-master/nginx/conf/secret`);
       assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret`);
       assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/static/nginx/conf/secret`);
-      
+
       function assertFilesAreBackedUpInDir(dir) {
         const backupDir = path.join(dir, 'backup');
         assert.isTrue(fs.existsSync(backupDir));
@@ -152,10 +152,10 @@ describe('SSL certificates renewal', () => {
         assert.isNotEmpty(dirs);
         // folder with timestamp
         const thisBackupDir = path.join(backupDir, dirs[0]);
-        const certificates = fs.readdirSync(thisBackupDir, { withFileTypes: true }).filter(f => f.isFile()).map(dirent => dirent.name);
+        const certificates = fs.readdirSync(thisBackupDir, { withFileTypes: true }).filter((f) => f.isFile()).map((dirent) => dirent.name);
         assert.isNotEmpty(certificates);
         // here we can compare with files that are in the folder above because the new one that is written has a different name.
-        for(const certFile of certificates) {
+        for (const certFile of certificates) {
           const originalFile = path.join(dir, certFile);
           const backupFile = path.join(thisBackupDir, certFile);
           assert.deepEqual(
