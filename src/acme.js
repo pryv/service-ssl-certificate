@@ -12,6 +12,7 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
   const logger = getLogger('acme');
   const config = await getConfig();
   const dnsWaitTime = config.get('acme:dnsWaitTime');
+  const dnsTriesCount = config.get('acme:dnsTriesCount');
   await updateDnsTxtRecord(token, keyAuthorization, settings);
   await rebootServices(token, ['pryvio_dns']);
 
@@ -21,12 +22,17 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
   nameServerHostnames.forEach((h) => areTxtRecordsSet[h] = false);
 
   for (const hostname of nameServerHostnames) {
-    while (! areTxtRecordsSet[hostname]) {
+    let i = 0
+    while (! areTxtRecordsSet[hostname] && i < dnsTriesCount) {
       logger.info(`Checking DNS challenge ${txtRecordHostname} by ${hostname}`);
       const txtRecords = await dns.resolveTxt(txtRecordHostname, { host: hostname });
       logger.info(`Obtained ${txtRecords}`);
       if (txtRecords.length > 0 && txtRecords[0] === keyAuthorization) areTxtRecordsSet[hostname] = true;
       await sleep(dnsWaitTime);
+      i++;
+    }
+    if (i === dnsTriesCount) {
+      logger.error(`DNS challenge not found in ${hostname} after ${dnsTriesCount} tries... Aborting.`)
     }
   }
 };
