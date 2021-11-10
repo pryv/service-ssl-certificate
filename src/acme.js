@@ -33,7 +33,7 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
       i++;
     }
     if (i === dnsTriesCount) {
-      logger.error(`DNS challenge not found in ${hostname} after ${dnsTriesCount} tries... Aborting.`);
+      throw new Error(`DNS challenge not found in ${hostname} after ${dnsTriesCount} tries... Aborting.`);
     }
   }
   logger.info(`Challenge set in both name servers for domain ${domain}. Proceeding with ACME validation...`);
