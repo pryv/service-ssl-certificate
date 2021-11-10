@@ -23,7 +23,7 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
   nameServerHostnames.forEach((h) => areTxtRecordsSet[h] = false);
 
   for (const hostname of nameServerHostnames) {
-    let i = 0
+    let i = 0;
     while (! areTxtRecordsSet[hostname] && i < dnsTriesCount) {
       logger.info(`Checking DNS challenge ${txtRecordHostname} by ${hostname}`);
       const txtRecords = await dns.resolveTxt(txtRecordHostname, { host: hostname });
@@ -33,7 +33,7 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
       i++;
     }
     if (i === dnsTriesCount) {
-      logger.error(`DNS challenge not found in ${hostname} after ${dnsTriesCount} tries... Aborting.`)
+      logger.error(`DNS challenge not found in ${hostname} after ${dnsTriesCount} tries... Aborting.`);
     }
   }
 };

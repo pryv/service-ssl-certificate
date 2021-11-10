@@ -7,6 +7,7 @@ const mkdirp = require('mkdirp');
 const DOMAIN_PLACEHOLDER = 'DOMAIN';
 
 const boiler = require('@pryv/boiler');
+
 boiler.init({
   appName: 'service-ssl-certificate',
   baseConfigDir: path.resolve(__dirname, '../config/'),
