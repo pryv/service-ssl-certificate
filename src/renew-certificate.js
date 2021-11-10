@@ -46,7 +46,7 @@ async function renewCertificate() {
     } else {
       [key, CSR] = await acme.forge.createCsr({
         keySize: 4096,
-        commonName: domain,
+        commonName: '*.' + domain,
       });
     }
 
