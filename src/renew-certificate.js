@@ -46,7 +46,7 @@ async function renewCertificate() {
     } else {
       [key, CSR] = await acme.forge.createCsr({
         keySize: 4096,
-        commonName: '*.' + domain,
+        commonName: `*.${domain}`,
       });
     }
 
@@ -90,7 +90,7 @@ async function renewCertificate() {
     const dataFolders = fs.readdirSync(basePath, { withFileTypes: true }).filter((f) => f.isDirectory()).map((dirent) => dirent.name);
 
     const existingRoles = config.get('leader:roles');
-    const roleFolders = dataFolders.filter(folder => existingRoles.includes(folder));
+    const roleFolders = dataFolders.filter((folder) => existingRoles.includes(folder));
 
     // build path for each
     const secretsFolders = [];

@@ -11,3 +11,4 @@ Prerequisites: Node v16+, Yarn v1+
 | Setup                             | `yarn`                         |
 | Run                               | `yarn start`                   |
 | Run Tests                         | `yarn test`                    |
+| Run Tests with logs               | `yarn test-logs`               |
