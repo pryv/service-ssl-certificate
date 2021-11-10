@@ -6,7 +6,8 @@ const mkdirp = require('mkdirp');
 
 const DOMAIN_PLACEHOLDER = 'DOMAIN';
 
-require('@pryv/boiler').init({
+const boiler = require('@pryv/boiler');
+boiler.init({
   appName: 'service-ssl-certificate',
   baseConfigDir: path.resolve(__dirname, '../config/'),
   extraConfigs: [],
@@ -75,7 +76,8 @@ async function renewCertificate() {
       fs.writeFileSync(path.join(dir, `${domain}-key.pem`), key);
     }
 
-    await rebootServices(token, ['pryvio_nginx']);
+    const nginxServiceKey = config.get('leader:serviceKeys:nginx');
+    await rebootServices(token, [nginxServiceKey]);
   } catch (e) {
     logger.error(`Error while renewing certificate: ${e}`);
     logger.error(e.stack);

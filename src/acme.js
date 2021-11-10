@@ -13,8 +13,9 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
   const config = await getConfig();
   const dnsWaitTime = config.get('acme:dnsWaitTime');
   const dnsTriesCount = config.get('acme:dnsTriesCount');
+  const dnsServiceKey = config.get('leader:serviceKeys:dns');
   await updateDnsTxtRecord(token, keyAuthorization, settings);
-  await rebootServices(token, ['pryvio_dns']);
+  await rebootServices(token, [dnsServiceKey]);
 
   const txtRecordHostname = `_acme-challenge.${domain}`;
 

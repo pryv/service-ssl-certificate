@@ -29,6 +29,8 @@ describe('SSL certificates renewal', () => {
   let domain;
   let stubCertificate;
   let nameServerHostnames;
+  let dnsServiceKey;
+  let nginxServiceKey;
 
   before(async () => {
     config = await getConfig();
@@ -39,6 +41,8 @@ describe('SSL certificates renewal', () => {
     stubCertificate = fs.readFileSync(`${__dirname}/../fixtures/test-renew-ssl.pryv.io-bundle.crt`, 'utf-8').toString();
     nameServerHostnames = platformSettings.vars.DNS_SETTINGS.settings.NAME_SERVER_ENTRIES.value;
     nameServerHostnames = platformSettings.vars.DNS_SETTINGS.settings.NAME_SERVER_ENTRIES.value.map((hostname) => hostname.name.replace('DOMAIN', domain));
+    dnsServiceKey = config.get('leader:serviceKeys:dns');
+    nginxServiceKey = config.get('leader:serviceKeys:nginx');
   });
 
   describe('renew-certificate', () => {
@@ -131,7 +135,7 @@ describe('SSL certificates renewal', () => {
     });
     it('must send order to reboot DNS services', () => {
       assert.deepEqual(rebootDnsBody, {
-        services: ['pryvio_dns'],
+        services: [dnsServiceKey],
       });
     });
     it('must verify that the DNS challenge is set', () => {
@@ -194,7 +198,7 @@ describe('SSL certificates renewal', () => {
     });
     it('must send order to reboot NGINX services', () => {
       assert.deepEqual(rebootNginxBody, {
-        services: ['pryvio_nginx'],
+        services: [nginxServiceKey],
       });
     });
   });

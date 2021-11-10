@@ -2,6 +2,9 @@ leader:
   credentialsPath: "/app/leader-data/credentials.txt"
   url: "http://pryvio_leader:9000"
   templatesPath: "/app/leader-data/"
+  serviceKeys:
+    dns: "dns"
+    nginx: "reverse_proxy"
 acme:
   isProduction: false
   #csrPath: "/app/conf/test-renew-ssl.pryv.io.csr"
