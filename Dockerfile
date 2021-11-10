@@ -21,5 +21,5 @@ RUN yarn install --frozen-lockfile --production=true # equivalent to "npm ci", a
 
 # Run the command on container startup
 CMD NODE_ENV=production node /app/bin/bin/main.js --config /app/conf/ssl-certificate.yml
-USER node
 RUN groupmod -g 9999 node && usermod -u 9999 -g 9999 node
+USER node
