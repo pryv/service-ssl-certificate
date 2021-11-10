@@ -53,7 +53,7 @@ async function renewCertificate() {
     const autoOpts = {
       csr: CSR,
       email: config.get('acme:email'),
-      skipChallengeVerification: config.get('acme:skipLibChallengeVerficiation'),
+      skipChallengeVerification: true, // acme-client's verification tool does not specify name servers, therefore fails
       termsOfServiceAgreed: true,
       challengePriority: ['dns-01'],
       challengeCreateFn: challengeCreateFn.bind(null, domain, token, settings, processNameServerHostnames),

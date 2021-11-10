@@ -36,7 +36,7 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
       logger.error(`DNS challenge not found in ${hostname} after ${dnsTriesCount} tries... Aborting.`);
     }
   }
-  logger.info(`challenge set in both name servers for domain ${domain}. Proceeding with ACME validation...`);
+  logger.info(`Challenge set in both name servers for domain ${domain}. Proceeding with ACME validation...`);
 };
 
 function sleep(milliseconds) {
