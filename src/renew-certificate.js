@@ -53,6 +53,7 @@ async function renewCertificate() {
     const autoOpts = {
       csr: CSR,
       email: config.get('acme:email'),
+      skipChallengeVerification: config.get('acme:skipLibChallengeVerficiation'),
       termsOfServiceAgreed: true,
       challengePriority: ['dns-01'],
       challengeCreateFn: challengeCreateFn.bind(null, domain, token, settings, processNameServerHostnames),

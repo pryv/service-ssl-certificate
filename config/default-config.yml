@@ -17,6 +17,7 @@ acme:
   email: tech@pryv.com
   dnsWaitTime: 1000
   dnsTriesCount: 60
+  skipLibChallengeVerficiation: true
 logs:
   console:
     active: true
