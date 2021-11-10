@@ -5,6 +5,12 @@ leader:
   serviceKeys:
     dns: "dns"
     nginx: "reverse_proxy"
+  roles:
+    - singlenode
+    - core
+    - reg-master
+    - reg-slave
+    - static
 acme:
   isProduction: false
   #csrPath: "/app/conf/test-renew-ssl.pryv.io.csr"

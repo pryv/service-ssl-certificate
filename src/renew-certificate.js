@@ -86,12 +86,15 @@ async function renewCertificate() {
 
   function generateSecretsFolder(basePath) {
     // figure out if single node or cluster
-    const roleFolders = fs.readdirSync(basePath, { withFileTypes: true }).filter((f) => f.isDirectory());
+    const dataFolders = fs.readdirSync(basePath, { withFileTypes: true }).filter((f) => f.isDirectory()).map((dirent) => dirent.name);
+
+    const existingRoles = config.get('leader:roles');
+    const roleFolders = dataFolders.filter(folder => existingRoles.includes(folder));
 
     // build path for each
     const secretsFolders = [];
     for (const roleFolder of roleFolders) {
-      secretsFolders.push(path.join(basePath, roleFolder.name, '/nginx/conf/secret'));
+      secretsFolders.push(path.join(basePath, roleFolder, '/nginx/conf/secret'));
     }
     return secretsFolders;
   }
