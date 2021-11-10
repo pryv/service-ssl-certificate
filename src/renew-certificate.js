@@ -74,8 +74,8 @@ async function renewCertificate() {
     for (const dir of secretsFolders) {
       await backupFilesInSecret(dir);
       logger.info(`Writing certificate and key to: ${dir}`);
-      fs.writeFileSync(path.join(dir, `${domain}-bundle.crt`), certificate);
-      fs.writeFileSync(path.join(dir, `${domain}-key.pem`), key);
+      fs.writeFileSync(path.join(dir, `${domain}-bundle.crt`), certificate, { mode: 0o644 });
+      fs.writeFileSync(path.join(dir, `${domain}-key.pem`), key, { mode: 0o644 });
     }
 
     const nginxServiceKey = config.get('leader:serviceKeys:nginx');
