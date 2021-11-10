@@ -20,4 +20,4 @@ WORKDIR /app/bin
 RUN yarn install --frozen-lockfile --production=true # equivalent to "npm ci", also ignore devDependencies
 
 # Run the command on container startup
-CMD exec chpst -u 9999:9999 NODE_ENV=production node /app/bin/bin/main.js --config /app/conf/ssl-certificate.yml
+CMD NODE_ENV=production node /app/bin/bin/main.js --config /app/conf/ssl-certificate.yml
