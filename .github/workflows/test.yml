@@ -23,4 +23,4 @@ jobs:
       run: yarn
       
     - name: Run tests
-      run: yarn test-logs
+      run: yarn test
