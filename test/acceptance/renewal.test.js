@@ -39,7 +39,6 @@ describe('SSL certificates renewal', () => {
     platformSettings = YAML.parse(fs.readFileSync(`${__dirname}/../fixtures/platform.yml`, 'utf-8'));
     domain = platformSettings.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
     stubCertificate = fs.readFileSync(`${__dirname}/../fixtures/test-renew-ssl.pryv.io-bundle.crt`, 'utf-8').toString();
-    nameServerHostnames = platformSettings.vars.DNS_SETTINGS.settings.NAME_SERVER_ENTRIES.value;
     nameServerHostnames = platformSettings.vars.DNS_SETTINGS.settings.NAME_SERVER_ENTRIES.value.map((hostname) => hostname.name.replace('DOMAIN', domain));
     dnsServiceKey = config.get('leader:serviceKeys:dns');
     nginxServiceKey = config.get('leader:serviceKeys:nginx');

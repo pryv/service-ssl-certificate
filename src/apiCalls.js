@@ -17,7 +17,7 @@ module.exports.login = async () => {
   if (fs.existsSync(CREDENTIALS_PATH)) {
     password = fs.readFileSync(CREDENTIALS_PATH, 'utf-8').toString().trim();
   } else {
-    throw new Error('Initial user password was not found!');
+    throw new Error(`${USERNAME} password was not found in ${CREDENTIALS_PATH}!`);
   }
   return requestToken(LEADER_URL, USERNAME, password);
 
