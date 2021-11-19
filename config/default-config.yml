@@ -18,6 +18,7 @@ acme:
   dnsRebootWaitMs: 10000
   dnsRetryWaitMs: 1000
   dnsRetriesCount: 60
+  skipDnsChecks: false
 logs:
   console:
     active: true
