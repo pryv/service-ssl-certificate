@@ -7,6 +7,7 @@ acme:
   #csrPath: "test/fixtures/test-renew-ssl.pryv.io.csr"
   email: tech@pryv.com
   dnsRetryWaitMs: 10
+  dnsRebootWaitMs: 10
 logs:
   console:
     active: false

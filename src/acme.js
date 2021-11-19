@@ -11,11 +11,15 @@ const {
 module.exports.challengeCreateFn = async function (domain, token, settings, nameServerHostnames, authz, challenge, keyAuthorization) {
   const logger = getLogger('acme');
   const config = await getConfig();
+  const dnsRebootWaitMs = config.get('acme:dnsRebootWaitMs');
   const dnsRetryWaitMs = config.get('acme:dnsRetryWaitMs');
   const dnsRetriesCount = config.get('acme:dnsRetriesCount');
   const dnsServiceKey = config.get('leader:serviceKeys:dns');
   await updateDnsTxtRecord(token, keyAuthorization, settings);
   await rebootServices(token, [dnsServiceKey]);
+
+  logger.info(`Waiting ${dnsRebootWaitMs}ms for the DNS containers to reboot`);
+  await sleep(dnsRebootWaitMs)
 
   const txtRecordHostname = `_acme-challenge.${domain}`;
 
