@@ -8,6 +8,8 @@ acme:
   email: tech@pryv.com
   dnsRetryWaitMs: 10
   dnsRebootWaitMs: 10
+  dnsRetriesCount: 60
+  skipDnsChecks: false
 logs:
   console:
     active: false

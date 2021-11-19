@@ -23,8 +23,9 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
   await sleep(dnsRebootWaitMs)
 
   if (skipDnsChecks) {
-    logger.warning('Skipping internal DNS checks. This was probably activated because DNS checks don\'t work properly because of network settings. Modify "acme:skipDnsChecks" parameter to reactivate');
+    logger.warn('Skipping internal DNS checks. This was probably activated because DNS checks don\'t work properly because of network settings. Modify "acme:skipDnsChecks" parameter to reactivate it.');
     logger.info('Proceeding with ACME validation...');
+    return;
   }
 
   const txtRecordHostname = `_acme-challenge.${domain}`;
