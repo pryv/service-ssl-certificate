@@ -16,7 +16,8 @@ acme:
   #csrPath: "/app/conf/test-renew-ssl.pryv.io.csr"
   email: tech@pryv.com
   dnsWaitTime: 1000
-  dnsTriesCount: 60
+  dnsRetryWaitMs: 1000
+  dnsRetriesCount: 60
 logs:
   console:
     active: true

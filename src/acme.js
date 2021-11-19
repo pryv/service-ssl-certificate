@@ -11,8 +11,8 @@ const {
 module.exports.challengeCreateFn = async function (domain, token, settings, nameServerHostnames, authz, challenge, keyAuthorization) {
   const logger = getLogger('acme');
   const config = await getConfig();
-  const dnsWaitTime = config.get('acme:dnsWaitTime');
-  const dnsTriesCount = config.get('acme:dnsTriesCount');
+  const dnsRetryWaitMs = config.get('acme:dnsRetryWaitMs');
+  const dnsRetriesCount = config.get('acme:dnsRetriesCount');
   const dnsServiceKey = config.get('leader:serviceKeys:dns');
   await updateDnsTxtRecord(token, keyAuthorization, settings);
   await rebootServices(token, [dnsServiceKey]);
@@ -24,16 +24,16 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
 
   for (const hostname of nameServerHostnames) {
     let i = 0;
-    while (! areTxtRecordsSet[hostname] && i < dnsTriesCount) {
+    while (! areTxtRecordsSet[hostname] && i < dnsRetriesCount) {
       logger.info(`Checking DNS challenge ${txtRecordHostname} by ${hostname}`);
       const txtRecords = await dns.resolveTxt(txtRecordHostname, { host: hostname });
       logger.info(`Obtained ${txtRecords}`);
       if (txtRecords.length > 0 && txtRecords[0] === keyAuthorization) areTxtRecordsSet[hostname] = true;
-      await sleep(dnsWaitTime);
+      await sleep(dnsRetryWaitMs);
       i++;
     }
-    if (i === dnsTriesCount) {
-      throw new Error(`DNS challenge not found in ${hostname} after ${dnsTriesCount} tries... Aborting.`);
+    if (i === dnsRetriesCount) {
+      throw new Error(`DNS challenge not found in ${hostname} after ${dnsRetriesCount} tries... Aborting.`);
     }
   }
   logger.info(`Challenge set in both name servers for domain ${domain}. Proceeding with ACME validation...`);
