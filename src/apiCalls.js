@@ -62,5 +62,8 @@ module.exports.rebootServices = async (token, servicesToRestart) => {
   const res = await request.post(callUrl)
     .set('authorization', token)
     .send({ services: servicesToRestart });
+  const body = res.body;
+  if (body.successes != null ) logger.info(`Rebooted services: ${res.body}`)
+  if (body.failures != null && body.failures.length > 0) throw new Error(`Failed to reboot services: ${body.failures}`)
   return res.body;
 };
