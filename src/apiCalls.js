@@ -64,6 +64,6 @@ module.exports.rebootServices = async (token, servicesToRestart) => {
     .send({ services: servicesToRestart });
   const body = res.body;
   if (body.successes != null ) logger.info(`Rebooted services: ${JSON.stringify(body.successes)}`)
-  if (body.failures != null && body.failures.length > 0) throw new Error(`Failed to reboot services: ${JSON.stringify(body.failures)}`)
+  if (body.failures != null && body.failures.length > 0) throw new Error(`Failed to reboot services by followers: ${JSON.stringify(body.failures)}`)
   return body;
 };
