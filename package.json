@@ -9,7 +9,7 @@
     "lint": "./node_modules/.bin/eslint ./src ./test ./bin"
   },
   "dependencies": {
-    "@pryv/boiler": "https://github.com/pryv/lib-node-boiler.git#1.0.4",
+    "@pryv/boiler": "https://github.com/pryv/pryv-boiler.git#1.0.4",
     "acme-client": "^4.1.3",
     "dns-dig": "^1.1.2",
     "mkdirp": "^1.0.4",
