@@ -1,8 +1,11 @@
 {
   "name": "pryv-service-ssl-certificate",
   "version": "1.1.2",
-  "description": "Pryv.io package for renewing wildcard certificates",
   "private": true,
+  "description": "Pryv.io package for renewing wildcard certificates",
+  "homepage": "https://pryv.com",
+  "license": "UNLICENSED",
+  "author": "Pryv S.A. <info@pryv.com> (https://pryv.com)",
   "scripts": {
     "test": "echo 'This project doesn’t use npm scripts – enter `just` for the available development commands\n' && exit 1"
   },
@@ -20,7 +23,7 @@
     "nock": "^13.0.4",
     "semistandard": "^16.0.1",
     "sinon": "^10.0.0",
+    "source-licenser": "^2.0.4",
     "yaml": "^1.10.2"
-  },
-  "license": "UNLICENSED"
+  }
 }

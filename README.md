@@ -12,3 +12,8 @@ Prerequisites: Node v16+, Yarn v1+
 | Run                               | `yarn start`                   |
 | Run Tests                         | `yarn test`                    |
 | Run Tests with logs               | `yarn test-logs`               |
+
+
+# License
+
+[UNLICENSED](LICENSE)

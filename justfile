@@ -63,4 +63,4 @@ test-cover *params:
 
 # Run source licensing tool (see 'licensing' folder for details)
 license:
-    # source-licenser --config-file licensing/config.yml ./
+    source-licenser --config-file .licenser.yml ./
