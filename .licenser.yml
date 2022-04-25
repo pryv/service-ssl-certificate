@@ -23,7 +23,7 @@ files:
 
   "**/README.md":
     footer:
-      startBlock: "\n\n# License\n\n"
+      startBlock: "\n\n## License\n\n"
       linePrefix: ""
       endBlock: ""
       license: "[{SPDX}](LICENSE)"
