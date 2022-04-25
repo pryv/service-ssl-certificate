@@ -11,18 +11,18 @@ const boiler = require('@pryv/boiler');
 boiler.init({
   appName: 'service-ssl-certificate',
   baseConfigDir: path.resolve(__dirname, '../config/'),
-  extraConfigs: [],
+  extraConfigs: []
 });
 const { getLogger, getConfig } = require('@pryv/boiler');
 
 const {
   login,
   getSettings,
-  rebootServices,
+  rebootServices
 } = require('./apiCalls');
 const { challengeCreateFn } = require('./acme');
 
-async function renewCertificate() {
+async function renewCertificate () {
   const config = await getConfig();
   const logger = getLogger('renewCertificate');
   logger.info('renewCertificate starting');
@@ -40,13 +40,13 @@ async function renewCertificate() {
 
     const csrPath = config.get('acme:csrPath');
     let CSR; let
-        key;
+      key;
     if (csrPath != null && fs.existsSync(csrPath)) {
       CSR = fs.readFileSync(csrPath, 'utf-8').toString().trim(); // could be self genreated with acme.forge
     } else {
       [key, CSR] = await acme.forge.createCsr({
         keySize: 4096,
-        commonName: `*.${domain}`,
+        commonName: `*.${domain}`
       });
     }
 
@@ -57,14 +57,14 @@ async function renewCertificate() {
       termsOfServiceAgreed: true,
       challengePriority: ['dns-01'],
       challengeCreateFn: challengeCreateFn.bind(null, domain, token, settings, processNameServerHostnames),
-      challengeRemoveFn: () => {},
+      challengeRemoveFn: () => {}
     };
     const isProduction = config.get('acme:isProduction');
     logger.info(`Creating ACME client. For production? ${isProduction}`);
 
     const client = new acme.Client({
       directoryUrl: isProduction ? acme.directory.letsencrypt.production : acme.directory.letsencrypt.staging,
-      accountKey: await acme.forge.createPrivateKey(), // generate an account key each time
+      accountKey: await acme.forge.createPrivateKey() // generate an account key each time
     });
     const certificate = await client.auto(autoOpts);
     logger.info(`Obtained certificate. Length: ${certificate.length}`);
@@ -85,7 +85,7 @@ async function renewCertificate() {
     logger.error(e.stack);
   }
 
-  function generateSecretsFolder(basePath) {
+  function generateSecretsFolder (basePath) {
     // figure out if single node or cluster
     const dataFolders = fs.readdirSync(basePath, { withFileTypes: true }).filter((f) => f.isDirectory()).map((dirent) => dirent.name);
 
@@ -100,7 +100,7 @@ async function renewCertificate() {
     return secretsFolders;
   }
 
-  async function backupFilesInSecret(basePath) {
+  async function backupFilesInSecret (basePath) {
     const filesToBackup = fs.readdirSync(basePath, { withFileTypes: true }).filter((f) => f.isFile()).map((dirent) => dirent.name);
     const backupFolder = path.join(basePath, 'backup', new Date().toISOString());
     logger.info(`Backing up files of ${basePath} into ${backupFolder}`);

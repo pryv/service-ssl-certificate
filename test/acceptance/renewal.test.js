@@ -36,9 +36,9 @@ describe('SSL certificates renewal', () => {
     config = await getConfig();
     leaderUrl = config.get('leader:url');
     credentials = fs.readFileSync(config.get('leader:credentialsPath'), 'utf-8');
-    platformSettings = YAML.parse(fs.readFileSync(`${__dirname}/../fixtures/platform.yml`, 'utf-8'));
+    platformSettings = YAML.parse(fs.readFileSync(fixture('platform.yml'), 'utf-8'));
     domain = platformSettings.vars.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
-    stubCertificate = fs.readFileSync(`${__dirname}/../fixtures/test-renew-ssl.pryv.io-bundle.crt`, 'utf-8').toString();
+    stubCertificate = fs.readFileSync(fixture('test-renew-ssl.pryv.io-bundle.crt'), 'utf-8').toString();
     nameServerHostnames = platformSettings.vars.DNS_SETTINGS.settings.NAME_SERVER_ENTRIES.value.map((hostname) => hostname.name.replace('DOMAIN', domain));
     dnsServiceKey = config.get('leader:serviceKeys:dns');
     nginxServiceKey = config.get('leader:serviceKeys:nginx');
@@ -57,7 +57,7 @@ describe('SSL certificates renewal', () => {
         auto: async () => {
           await challengeCreateFn(domain, token, platformSettings.vars, nameServerHostnames, null, null, challenge);
           return stubCertificate;
-        },
+        }
       });
       digResolveStub = stub(dns, 'resolveTxt');
       digResolveStub.withArgs(`_acme-challenge.${domain}`, { host: nameServerHostnames[0] }).onFirstCall().returns([]);
@@ -103,11 +103,11 @@ describe('SSL certificates renewal', () => {
     });
 
     after(() => {
-      removeCreatedFilesInDir(`${__dirname}/../fixtures/data/core/nginx/conf/secret/`);
-      removeCreatedFilesInDir(`${__dirname}/../fixtures/data/reg-master/nginx/conf/secret`);
-      removeCreatedFilesInDir(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret`);
-      removeCreatedFilesInDir(`${__dirname}/../fixtures/data/static/nginx/conf/secret`);
-      function removeCreatedFilesInDir(dir) {
+      removeCreatedFilesInDir(fixture('data/core/nginx/conf/secret/'));
+      removeCreatedFilesInDir(fixture('data/reg-master/nginx/conf/secret'));
+      removeCreatedFilesInDir(fixture('data/reg-slave/nginx/conf/secret'));
+      removeCreatedFilesInDir(fixture('data/static/nginx/conf/secret'));
+      function removeCreatedFilesInDir (dir) {
         fs.rmSync(path.join(dir, 'test-renew-ssl.pryv.io-bundle.crt'));
         fs.rmSync(path.join(dir, 'test-renew-ssl.pryv.io-key.pem'));
         fs.rmSync(path.join(dir, 'backup'), { recursive: true });
@@ -117,7 +117,7 @@ describe('SSL certificates renewal', () => {
     it('must login with leader using the credentials found in the defined path', () => {
       assert.deepEqual(loginRequestBody, {
         username: 'initial_user',
-        password: credentials,
+        password: credentials
       });
     });
     it('must fetch domain in settings from leader', () => {
@@ -134,7 +134,7 @@ describe('SSL certificates renewal', () => {
     });
     it('must send order to reboot DNS services', () => {
       assert.deepEqual(rebootDnsBody, {
-        services: [dnsServiceKey],
+        services: [dnsServiceKey]
       });
     });
     it('must verify that the DNS challenge is set', () => {
@@ -159,12 +159,12 @@ describe('SSL certificates renewal', () => {
       assert.equal(secondCalled, 2);
     });
     it('must backup old certificates', () => {
-      assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/core/nginx/conf/secret`);
-      assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/reg-master/nginx/conf/secret`);
-      assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret`);
-      assertFilesAreBackedUpInDir(`${__dirname}/../fixtures/data/static/nginx/conf/secret`);
+      assertFilesAreBackedUpInDir(fixture('data/core/nginx/conf/secret'));
+      assertFilesAreBackedUpInDir(fixture('data/reg-master/nginx/conf/secret'));
+      assertFilesAreBackedUpInDir(fixture('data/reg-slave/nginx/conf/secret'));
+      assertFilesAreBackedUpInDir(fixture('data/static/nginx/conf/secret'));
 
-      function assertFilesAreBackedUpInDir(dir) {
+      function assertFilesAreBackedUpInDir (dir) {
         const backupDir = path.join(dir, 'backup');
         assert.isTrue(fs.existsSync(backupDir));
         // retrieve timestamp
@@ -180,25 +180,29 @@ describe('SSL certificates renewal', () => {
           const backupFile = path.join(thisBackupDir, certFile);
           assert.deepEqual(
             fs.readFileSync(originalFile, 'utf-8'),
-            fs.readFileSync(backupFile, 'utf-8'),
+            fs.readFileSync(backupFile, 'utf-8')
           );
         }
       }
     });
     it('must write certificates and keys to appropriate directories', () => {
-      assertCertificatesAreWrittenInDir(`${__dirname}/../fixtures/data/core/nginx/conf/secret`);
-      assertCertificatesAreWrittenInDir(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret`);
-      assertCertificatesAreWrittenInDir(`${__dirname}/../fixtures/data/reg-slave/nginx/conf/secret`);
-      assertCertificatesAreWrittenInDir(`${__dirname}/../fixtures/data/static/nginx/conf/secret`);
-      function assertCertificatesAreWrittenInDir(dir) {
+      assertCertificatesAreWrittenInDir(fixture('data/core/nginx/conf/secret'));
+      assertCertificatesAreWrittenInDir(fixture('data/reg-slave/nginx/conf/secret'));
+      assertCertificatesAreWrittenInDir(fixture('data/reg-slave/nginx/conf/secret'));
+      assertCertificatesAreWrittenInDir(fixture('data/static/nginx/conf/secret'));
+      function assertCertificatesAreWrittenInDir (dir) {
         assert.equal(fs.readFileSync(path.join(dir, 'test-renew-ssl.pryv.io-bundle.crt'), 'utf-8'), stubCertificate);
         assert.exists(fs.readFileSync(path.join(dir, 'test-renew-ssl.pryv.io-key.pem'), 'utf-8'));
       }
     });
     it('must send order to reboot NGINX services', () => {
       assert.deepEqual(rebootNginxBody, {
-        services: [nginxServiceKey],
+        services: [nginxServiceKey]
       });
     });
   });
 });
+
+function fixture (subPath) {
+  return path.join(__dirname, '../fixtures', subPath);
+}

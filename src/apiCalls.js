@@ -1,6 +1,5 @@
 const request = require('superagent');
 const fs = require('fs');
-const url = require('url');
 
 const { getLogger, getConfigUnsafe } = require('@pryv/boiler');
 
@@ -21,20 +20,20 @@ module.exports.login = async () => {
   }
   return requestToken(LEADER_URL, USERNAME, password);
 
-  async function requestToken(LEADER_URL, USERNAME, password) {
-    const callUrl = url.resolve(LEADER_URL, '/auth/login');
+  async function requestToken (LEADER_URL, USERNAME, password) {
+    const callUrl = (new URL('/auth/login', LEADER_URL)).href;
     logger.log('info', `Requesting token from config-leader at: ${callUrl}`);
     const res = await request.post(callUrl)
       .send({
         username: USERNAME,
-        password,
+        password
       });
     return res.body.token;
   }
 };
 
 module.exports.getSettings = async (token) => {
-  const callUrl = url.resolve(LEADER_URL, '/admin/settings');
+  const callUrl = (new URL('/admin/settings', LEADER_URL)).href;
   logger.info(`fetching settings from leader at ${callUrl}`);
   const res = await request.get(callUrl)
     .set('authorization', token);
@@ -42,7 +41,7 @@ module.exports.getSettings = async (token) => {
 };
 
 module.exports.updateDnsTxtRecord = async (token, challenge, settings) => {
-  const callUrl = url.resolve(LEADER_URL, '/admin/settings');
+  const callUrl = (new URL('/admin/settings', LEADER_URL)).href;
   logger.info(`Updating settings to leader at ${callUrl}, setting challenge: ${challenge}`);
   settings.DNS_SETTINGS.settings.DNS_CUSTOM_ENTRIES.value['_acme-challenge'] = { description: challenge };
   const res = await request.put(callUrl)
@@ -57,13 +56,13 @@ module.exports.updateDnsTxtRecord = async (token, challenge, settings) => {
  * @param {*} servicesToRestart Array of strings
  */
 module.exports.rebootServices = async (token, servicesToRestart) => {
-  const callUrl = url.resolve(LEADER_URL, '/admin/notify');
+  const callUrl = (new URL('/admin/notify', LEADER_URL)).href;
   logger.info(`Rebooting services ${servicesToRestart} on leader at: ${callUrl}`);
   const res = await request.post(callUrl)
     .set('authorization', token)
     .send({ services: servicesToRestart });
   const body = res.body;
-  if (body.successes != null ) logger.info(`Rebooted services: ${JSON.stringify(body.successes)}`)
-  if (body.failures != null && body.failures.length > 0) throw new Error(`Failed to reboot services by followers: ${JSON.stringify(body.failures)}`)
+  if (body.successes != null) logger.info(`Rebooted services: ${JSON.stringify(body.successes)}`);
+  if (body.failures != null && body.failures.length > 0) throw new Error(`Failed to reboot services by followers: ${JSON.stringify(body.failures)}`);
   return body;
 };

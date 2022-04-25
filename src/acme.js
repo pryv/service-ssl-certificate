@@ -2,7 +2,7 @@ const dns = require('dns-dig');
 const { getLogger, getConfig } = require('@pryv/boiler');
 const {
   updateDnsTxtRecord,
-  rebootServices,
+  rebootServices
 } = require('./apiCalls');
 
 /**
@@ -20,7 +20,7 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
   await rebootServices(token, [dnsServiceKey]);
 
   logger.info(`Waiting ${dnsRebootWaitMs}ms for the DNS containers to reboot`);
-  await sleep(dnsRebootWaitMs)
+  await sleep(dnsRebootWaitMs);
 
   if (skipDnsChecks) {
     logger.warn('Skipping internal DNS checks. This was probably activated because DNS checks don\'t work properly because of network settings. Modify "acme:skipDnsChecks" parameter to reactivate it.');
@@ -31,11 +31,11 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
   const txtRecordHostname = `_acme-challenge.${domain}`;
 
   const areTxtRecordsSet = {};
-  nameServerHostnames.forEach((h) => areTxtRecordsSet[h] = false);
+  nameServerHostnames.forEach((h) => { areTxtRecordsSet[h] = false; });
 
   for (const hostname of nameServerHostnames) {
     let i = 0;
-    while (! areTxtRecordsSet[hostname] && i < dnsRetriesCount) {
+    while (!areTxtRecordsSet[hostname] && i < dnsRetriesCount) {
       logger.info(`Checking DNS challenge ${txtRecordHostname} by ${hostname}`);
       const txtRecords = await dns.resolveTxt(txtRecordHostname, { host: hostname });
       logger.info(`Obtained ${txtRecords}`);
@@ -50,6 +50,6 @@ module.exports.challengeCreateFn = async function (domain, token, settings, name
   logger.info(`Challenge set in both name servers for domain ${domain}. Proceeding with ACME validation...`);
 };
 
-function sleep(milliseconds) {
+function sleep (milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

@@ -39,23 +39,23 @@ run:
 
 # Run code linting
 lint *params:
-    # npx semistandard -- {{params}}
+    npx semistandard {{params}}
 
 # Run tests on the given component ('all' for all components) with optional extra parameters
 test *params:
-    NODE_ENV=test npx mocha -- {{params}}
+    NODE_ENV=test npx mocha {{params}}
 
 # Run tests with detailed output
 test-detailed *params:
-    NODE_ENV=test npx mocha -- --reporter=spec {{params}}
+    NODE_ENV=test npx mocha --reporter=spec {{params}}
 
 # Run tests with detailed output for debugging
 test-debug *params:
-    NODE_ENV=test npx mocha -- --timeout 3600000 --reporter=spec --inspect-brk=40000 {{params}}
+    NODE_ENV=test npx mocha --timeout 3600000 --reporter=spec --inspect-brk=40000 {{params}}
 
 # Run tests and generate HTML coverage report
 test-cover *params:
-    NODE_ENV=test nyc --reporter=html --report-dir=./coverage npx mocha -- {{params}}
+    NODE_ENV=test nyc --reporter=html --report-dir=./coverage npx mocha {{params}}
 
 # –––––––––––––----------------------------------------------------------------
 # Misc. utils
