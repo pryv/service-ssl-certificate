@@ -1,12 +1,10 @@
 {
-  "name": "pryv-certificate-renewal",
+  "name": "pryv-service-ssl-certificate",
+  "version": "1.1.2",
   "description": "Pryv.io package for renewing wildcard certificates",
   "private": true,
   "scripts": {
-    "start": "NODE_ENV=development node src/renew-certificate.js",
-    "test": "NODE_ENV=test ./node_modules/.bin/mocha 'test/**/*.test.js'",
-    "test-logs": "logs__console__active=true NODE_ENV=test ./node_modules/.bin/mocha 'test/**/*.test.js'",
-    "lint": "./node_modules/.bin/eslint ./src ./test ./bin"
+    "test": "echo 'This project doesn’t use npm scripts – enter `just` for the available development commands\n' && exit 1"
   },
   "dependencies": {
     "@pryv/boiler": "https://github.com/pryv/pryv-boiler.git#1.0.4",
@@ -16,17 +14,7 @@
     "superagent": "^6.1.0"
   },
   "devDependencies": {
-    "babel-eslint": "^10.0.2",
     "chai": "^4.2.0",
-    "eslint": "^7.2.0",
-    "eslint-config-airbnb": "18.2.1",
-    "eslint-config-prettier": "^6.11.0",
-    "eslint-import-resolver-alias": "^1.1.2",
-    "eslint-plugin-flowtype": "^3.12.1",
-    "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-jsx-a11y": "^6.4.1",
-    "eslint-plugin-react": "^7.21.5",
-    "eslint-plugin-react-hooks": "^1.7.0",
     "lodash": "^4.17.21",
     "mocha": "^8.2.0",
     "nock": "^13.0.4",

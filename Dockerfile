@@ -17,10 +17,10 @@ RUN mkdir -p $LOG_DIR
 COPY . /app/bin/
 WORKDIR /app/bin
 
-RUN yarn install --frozen-lockfile --production=true # equivalent to "npm ci", also ignore devDependencies
+RUN npm ci
 
 # Run the command on container startup
-CMD NODE_ENV=production node /app/bin/bin/main.js --config /app/conf/ssl-certificate.yml
+CMD NODE_ENV=production node /app/bin/bin/renew --config /app/conf/ssl-certificate.yml
 
 RUN groupmod -g 9999 node && usermod -u 9999 -g 9999 node
 USER node

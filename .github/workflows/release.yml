@@ -1,6 +1,6 @@
-name: SSL renewal release
+name: SSL renewal publish release
 
-on: 
+on:
   push:
     tags:
       - '*'
@@ -9,7 +9,7 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         node-version: [16.4.1]
