@@ -9,7 +9,7 @@ _help:
 # Setup
 # –––––––––––––----------------------------------------------------------------
 
-# Set up the dev environment on a MacOS or GNU/Linux system
+# Set up the dev environment
 setup-dev-env:
     scripts/setup-dev-env
 
@@ -29,7 +29,7 @@ install-stable:
 # Run
 # –––––––––––––----------------------------------------------------------------
 
-# Start the given server component for dev (expects 'dist/{component}/bin/server')
+# Run the renewal process
 run:
     NODE_ENV=development bin/renew
 
@@ -41,7 +41,7 @@ run:
 lint *params:
     npx semistandard {{params}}
 
-# Run tests on the given component ('all' for all components) with optional extra parameters
+# Run tests with optional extra parameters
 test *params:
     NODE_ENV=test npx mocha {{params}}
 
