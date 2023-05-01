@@ -36,6 +36,13 @@ async function renewCertificate () {
   try {
     const token = await login();
     const settings = await getSettings(token);
+    const email = config.get('acme:email');
+    if (email.indexOf('@') < 1) {
+      const errorMsg = `Invalid email address: "${email}", update configuration files.`;
+      logger.error(errorMsg);
+      console.log(`Error: ${errorMsg}`);
+      process.exit(1);
+    }
 
     const domain = settings.MACHINES_AND_PLATFORM_SETTINGS.settings.DOMAIN.value;
     const nameServerHostnames = settings.DNS_SETTINGS.settings.NAME_SERVER_ENTRIES.value.map((h) => h.name);
